@@ -1,0 +1,49 @@
+start process 0 on computer 10.8.0.131 processor 0.
+start process 1 on computer 10.8.0.131 processor 1.
+start process 2 on computer 10.8.0.131 processor 2.
+start process 3 on computer 10.8.0.131 processor 3.
+start process 4 on computer 10.8.0.131 processor 4.
+start process 5 on computer 10.8.0.131 processor 5.
+start process 6 on computer 10.8.0.131 processor 6.
+start process 7 on computer 10.8.0.131 processor 7.
+start process 8 on computer 10.8.0.131 processor 8.
+start process 9 on computer 10.8.0.131 processor 9.
+start process 10 on computer 10.8.0.131 processor 10.
+start process 11 on computer 10.8.0.131 processor 11.
+start process 12 on computer 10.8.0.131 processor 12.
+start process 13 on computer 10.8.0.131 processor 13.
+start process 14 on computer 10.8.0.131 processor 14.
+start process 15 on computer 10.8.0.131 processor 15.
+start process 16 on computer 10.8.0.131 processor 16.
+start process 17 on computer 10.8.0.131 processor 17.
+start process 18 on computer 10.8.0.131 processor 18.
+start process 19 on computer 10.8.0.131 processor 19.
+start process 20 on computer 10.8.0.131 processor 20.
+start process 21 on computer 10.8.0.131 processor 21.
+start process 22 on computer 10.8.0.131 processor 22.
+start process 23 on computer 10.8.0.131 processor 23.
+process 0 finished in 17 seconds.
+computer 10.8.0.131 now available
+process 4 finished in 17 seconds.
+process 1 finished in 17 seconds.
+process 2 finished in 17 seconds.
+process 3 finished in 17 seconds.
+process 5 finished in 17 seconds.
+process 11 finished in 17 seconds.
+process 6 finished in 17 seconds.
+process 7 finished in 17 seconds.
+process 9 finished in 17 seconds.
+process 12 finished in 17 seconds.
+process 10 finished in 17 seconds.
+process 8 finished in 17 seconds.
+process 16 finished in 17 seconds.
+process 14 finished in 17 seconds.
+process 13 finished in 17 seconds.
+process 17 finished in 17 seconds.
+process 15 finished in 17 seconds.
+process 18 finished in 17 seconds.
+process 20 finished in 17 seconds.
+process 22 finished in 17 seconds.
+process 21 finished in 17 seconds.
+process 23 finished in 17 seconds.
+process 19 finished in 17 seconds.
