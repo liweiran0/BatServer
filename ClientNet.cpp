@@ -39,7 +39,7 @@ int ClientNet::SendMsg(string msg)
   int rlt = 0;
   int iErrMsg;
   iErrMsg = send(m_sock, msg.c_str(), msg.length(), 0);
-  cout << "send msg :" << msg << endl;
+  //cout << "send msg :" << msg << endl;
   if (iErrMsg < 0)
   {
     printf("send msg failed with error : %d\n", iErrMsg);

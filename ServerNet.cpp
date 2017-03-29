@@ -68,7 +68,9 @@ void ServerNet::run()
           break;
         }
         if (rval == 0)
-          printf("ending connection\n");
+        {
+          //printf("ending connection\n");
+        }
         else
         {
           //printf("recv %s\n", buf);

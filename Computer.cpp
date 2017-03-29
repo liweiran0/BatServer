@@ -119,6 +119,7 @@ void Computer::doingThread(shared_ptr<Process> process)
   if (task)
     taskName = task->getTaskName();
   cmd += to_string(process->getTaskID()) + ":" + taskName + ":" + to_string(process->getProcessID()) + ":" + to_string(process->getProcessorIndex()) + ":" + process->getRemoteAddr();
+  ClientNet client;
   client.Connect(ipAddr.c_str(), fixPort);
   client.SendMsg(cmd);
   client.Close();

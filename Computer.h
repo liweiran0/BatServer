@@ -17,7 +17,6 @@ private:
   list<int> idleProcessor;
   map<int,thread> workingThread;
   list<shared_ptr<Process>> doingProcesses;
-  ClientNet client;
 public:
   Computer();
   ~Computer();
