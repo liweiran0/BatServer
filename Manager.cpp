@@ -262,7 +262,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
       if (processQueue.size() > 0)
       {
         auto process = processQueue.front();
-        ret += string("The first id:") + to_string(process->getProcessID()) + " belongs taskID:" + to_string(process->getTaskID()) + "\r\n";
+        ret += string("The first process id:") + to_string(process->getProcessID()) + " belongs to taskID:" + to_string(process->getTaskID()) + "\r\n";
       }
     }
   }
@@ -351,7 +351,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
 
 void Manager::accelerateTaskByID(int id)
 {
-  bool foundTask = false;
+  bool foundTask = false; 
   {
     lock_guard<mutex> lck(taskMutex);
     for (auto task : processingTaskQueue)
@@ -365,30 +365,19 @@ void Manager::accelerateTaskByID(int id)
   }
   if (foundTask)
   {
+    decltype(processQueue) tmpList;
     unique_lock<mutex> lck(queueMutex);
-    auto firstProc = processQueue.begin();
-    while(firstProc != processQueue.end())
+    for (auto iter = processQueue.begin(); iter != processQueue.end();)
     {
-      shared_ptr<Process> proc = *firstProc;
+      shared_ptr<Process> proc = *iter;
+      ++iter;
       if (proc && proc->getTaskID() == id)
-        break;
-      ++firstProc;
-    }
-    auto lastProc = firstProc;
-    if (firstProc != processQueue.end())
-    {
-      while (lastProc != processQueue.end())
       {
-        shared_ptr<Process> proc = *lastProc;
-        if (proc && proc->getTaskID() == id)
-          ++lastProc;
-        else
-          break;
+        processQueue.remove(proc);
+        tmpList.push_back(proc);
       }
-      decltype(processQueue) tmpList;
-      tmpList.splice(tmpList.begin(), processQueue, firstProc, lastProc);
-      processQueue.splice(processQueue.begin(), tmpList);
     }
+    processQueue.splice(processQueue.begin(), tmpList);
   }
 }
 
@@ -413,28 +402,15 @@ void Manager::killTaskByID(int id)
   if (foundTask)
   {
     unique_lock<mutex> lck(queueMutex);
-    auto firstProc = processQueue.begin();
-    while (firstProc != processQueue.end())
+    for (auto iter = processQueue.begin(); iter != processQueue.end();)
     {
-      shared_ptr<Process> proc = *firstProc;
+      shared_ptr<Process> proc = *iter;
+      ++iter;
       if (proc && proc->getTaskID() == id)
-        break;
-      ++firstProc;
-    }
-    auto lastProc = firstProc;
-    if (firstProc != processQueue.end())
-    {
-      while (lastProc != processQueue.end())
       {
-        shared_ptr<Process> proc = *lastProc;
-        if (proc && proc->getTaskID() == id)
-          ++lastProc;
-        else
-          break;
+        processQueue.remove(proc);
       }
-      processQueue.erase(firstProc, lastProc);
     }
-    taskToBeKilled.reset();
   }
 }
 
