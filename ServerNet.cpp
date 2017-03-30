@@ -80,7 +80,7 @@ void ServerNet::run()
     // 判断读/写套接字集合中就绪的套接字    
     if ((Total = select(0, &ReadSet, &WriteSet, NULL, NULL)) == SOCKET_ERROR)//将NULL以形参传入Timeout，即不传入时间结构，就是将select置于阻塞状态，一定等到监视文件描述符集合中某个文件描述符发生变化为止.服务器会停到这里等待客户端相应
     {
-      cout << "select()   returned   with   error   " << WSAGetLastError() << endl;
+      //cout << "select()   returned   with   error   " << WSAGetLastError() << endl;
       return;
     }
     // 依次处理所有套接字。本服务器是一个回应服务器，即将从客户端收到的字符串再发回到客户端。
@@ -105,7 +105,7 @@ void ServerNet::run()
               return;
             }
             // 创建套接字信息，初始化LPSOCKET_INFORMATION结构体数据，将AcceptSocket添加到SocketArray数组中
-            GetAddressBySocket(AcceptSocket);
+            //GetAddressBySocket(AcceptSocket);
             if (CreateSocketInformation(AcceptSocket) == FALSE)
               return;
           }
@@ -131,7 +131,7 @@ void ServerNet::run()
             // 错误编码等于WSAEWOULDBLOCK表示暂没有数据，否则表示出现异常
             if (WSAGetLastError() != WSAEWOULDBLOCK)
             {
-              cout << "WSARecv()   failed   with   error  " << WSAGetLastError() << endl;
+              //cout << "WSARecv()   failed   with   error  " << WSAGetLastError() << endl;
               FreeSocketInformation(i);        // 释放套接字信息
             }
             continue;
@@ -169,7 +169,7 @@ void ServerNet::run()
               // 错误编码等于WSAEWOULDBLOCK表示暂没有数据，否则表示出现异常
               if (WSAGetLastError() != WSAEWOULDBLOCK)
               {
-                cout << "WSASend()   failed   with   error   " << WSAGetLastError() << endl;
+                //cout << "WSASend()   failed   with   error   " << WSAGetLastError() << endl;
                 FreeSocketInformation(i);        // 释放套接字信息
               }
               continue;
@@ -297,6 +297,14 @@ string getLocalIpAddress()
 short getUnusedPort(short start_port)
 {
   int sock;
+  int iErrorMsg;
+  WSAData wsaData;
+  iErrorMsg = WSAStartup(MAKEWORD(1, 1), &wsaData);
+  if (iErrorMsg != NO_ERROR)
+  {
+    printf("wsastartup failed with error : %d\n", iErrorMsg);
+    return -1;
+  }
   sockaddr_in addr;
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = INADDR_ANY;
@@ -306,12 +314,11 @@ short getUnusedPort(short start_port)
   for (port = start_port; port < 65536; port++)
   {
     addr.sin_port = htons(port);
-    if (::bind(sock, (struct sockaddr *)&addr, sizeof(struct sockaddr_in)) != 0)
+    if (::bind(sock, (struct sockaddr *)&addr, sizeof(struct sockaddr_in)) >= 0)
     {
       flag = 0;
       if ((port % 2) == 0)
         port++;
-      continue;
     }
     else
     {

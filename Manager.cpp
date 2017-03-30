@@ -202,6 +202,7 @@ void Manager::telnetWork()
 
 void Manager::telnetCallback(string cmd, SOCKET sock)
 {
+  cmd = cmd.substr(0, cmd.find_first_of("\r\n"));
   string ret("");
   if (cmd == "info")
   {
