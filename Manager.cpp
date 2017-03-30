@@ -270,17 +270,19 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   {
     ret += "==========================================================\r\n";
     {
-      ret += "ComputerIP\tTotalCores\tIdleCores\tWorkingCores\r\n";
+      ret += "ComputerIP\tCores\tInuse\tIdle\tUnused\tWorking\r\n";
       lock_guard<mutex> lck(computerMutex);
       for (auto computer: fullWorkingComputers)
       {
-        ret += computer->getIpAddr() + "\t" + to_string(computer->getProcessorNum()) + "\t\t" + to_string(computer->getIdleNum()) + "\t\t"
-          + to_string(computer->getProcessorNum() - computer->getIdleNum()) + "\r\n";
+        ret += computer->getIpAddr() + "\t" + to_string(computer->getActualProcessorNum()) + "\t" 
+             + to_string(computer->getProcessorNum()) + "\t" + to_string(computer->getIdleNum()) + "\t" 
+             + to_string(computer->getUnusedNum()) + "\t" + to_string(computer->getWorkingNum()) + "\r\n";
       }
       for (auto computer : idleComputers)
       {
-        ret += computer->getIpAddr() + "\t" + to_string(computer->getProcessorNum()) + "\t\t" + to_string(computer->getIdleNum()) + "\t\t"
-          + to_string(computer->getProcessorNum() - computer->getIdleNum()) + "\r\n";
+        ret += computer->getIpAddr() + "\t" + to_string(computer->getActualProcessorNum()) + "\t"
+          + to_string(computer->getProcessorNum()) + "\t" + to_string(computer->getIdleNum()) + "\t"
+          + to_string(computer->getUnusedNum()) + "\t" + to_string(computer->getWorkingNum()) + "\r\n";
       }
       if (unregisteredComputers.size() > 0)
       {
@@ -533,11 +535,6 @@ void Manager::removeComputer(string ip)
 
 void Manager::setComputerAttr(string ip, int cores)
 {
-  if (cores == 0)
-  {
-    removeComputer(ip);
-    return;
-  }
   shared_ptr<Computer> computer;
   {
     unique_lock<mutex> lck(computerMutex);
@@ -555,16 +552,18 @@ void Manager::setComputerAttr(string ip, int cores)
       cores = min(cores, computer->getActualProcessorNum());
       if (cores < computer->getProcessorNum())
       {
-        if (cores <= computer->getProcessorNum() - computer->getIdleNum())
+        //reduce cores
+        if (cores < computer->getWorkingNum())
         {
           //the computer will not be idle
           idleComputers.remove(computer);
           fullWorkingComputers.push_back(computer);
           list<shared_ptr<Process>> processes;
-          for (auto i = 0; i < computer->getProcessorNum() - computer->getIdleNum() - cores; i++)
+          for (auto i = 0; i < computer->getWorkingNum() - cores; i++)
           {
             //need to restart such process
             auto process = computer->suspendProcess();
+            computer->removeWorkingProcessor(process->getProcessorIndex());
             process->reset();
             processes.push_back(process);
             lock_guard<mutex> lckTask(taskMutex);
@@ -572,6 +571,9 @@ void Manager::setComputerAttr(string ip, int cores)
             if (task)
               task->getProcessingNumber()--;
           }
+          int idleNum = computer->getIdleNum();
+          for (auto i = 0; i < idleNum; i++)
+            computer->removeIdleProcessor();
           unique_lock<mutex> lckQueue(queueMutex);
           processQueue.splice(processQueue.begin(), processes);
           computerChangeFlag = true;
@@ -597,9 +599,12 @@ void Manager::setComputerAttr(string ip, int cores)
         {
           // set the computer be idle and not full working
           computer->setProcessorNum(cores);
-          fullWorkingComputers.remove(computer);
-          idleComputers.push_back(computer);
-          computerCv.notify_one();
+          if (computer->getIdleNum() > 0)
+          {
+            fullWorkingComputers.remove(computer);
+            idleComputers.push_back(computer);
+            computerCv.notify_one();
+          }
         }
         else
         {
@@ -608,6 +613,7 @@ void Manager::setComputerAttr(string ip, int cores)
           {
             //need to restart such process
             auto process = computer->suspendProcess();
+            computer->removeWorkingProcessor(process->getProcessorIndex());
             process->reset();
             processes.push_back(process);
             lock_guard<mutex> lckTask(taskMutex);
@@ -645,16 +651,28 @@ void Manager::lazySetComputerAttr(string ip, int cores)
       cores = min(cores, computer->getActualProcessorNum());
       if (cores < computer->getProcessorNum())
       {
-        if (cores <= computer->getProcessorNum() - computer->getIdleNum())
+        if (cores <= computer->getWorkingNum())
         {
           //the computer will not be idle
           idleComputers.remove(computer);
           fullWorkingComputers.push_back(computer);
+          //remove idle processors
+          int idleNum = computer->getIdleNum();
+          for (auto i = 0; i < idleNum; i++)
+            computer->removeIdleProcessor();
+          computer->lazyRemoveProcessor(computer->getWorkingNum() - cores);
           lock_guard<mutex> lckQueue(queueMutex);
           computerChangeFlag = true;
         }
+        else
+        {
+          computer->setProcessorNum(cores);
+        }
       }
-      computer->setProcessorNum(cores);
+      else
+      {
+        computer->setProcessorNum(cores);
+      }
     }
     else
     {
@@ -669,16 +687,21 @@ void Manager::lazySetComputerAttr(string ip, int cores)
       if (computer)
       {
         cores = min(cores, computer->getActualProcessorNum());
-        if (cores > computer->getProcessorNum())
+        if (cores > computer->getWorkingNum())
         {
           // set the computer be idle and not full working
           computer->setProcessorNum(cores);
-          fullWorkingComputers.remove(computer);
-          idleComputers.push_back(computer);
-          computerCv.notify_one();
+          if (computer->getIdleNum() > 0)
+          {
+            fullWorkingComputers.remove(computer);
+            idleComputers.push_back(computer);
+            computerCv.notify_one();
+          }
         }
         else
         {
+          assert(computer->getWorkingNum() == computer->getProcessorNum());
+          computer->lazyRemoveProcessor(computer->getProcessorNum() - cores);
           computer->setProcessorNum(cores);
         }
       }

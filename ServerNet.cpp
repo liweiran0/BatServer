@@ -6,21 +6,18 @@ bool GetAddressBySocket(SOCKET m_socket)
   SOCKADDR_IN m_address;
   memset(&m_address, 0, sizeof(m_address));
   int nAddrLen = sizeof(m_address);
-
   //根据套接字获取地址信息
   if (::getpeername(m_socket, (SOCKADDR*) &m_address, &nAddrLen) != 0)
   {
     printf("Get IP address by socket failed!n");
     return false;
   }
-
   //读取IP和Port
   char ipDec[32];
   inet_ntop(AF_INET, &m_address.sin_addr, ipDec, 32);
   cout << "IP: " << ipDec << "  PORT: " << ntohs(m_address.sin_port) << endl;
   return true;
 }
-
 
 int ServerNet::init(const char* address, int port)
 {
@@ -69,8 +66,8 @@ void ServerNet::run()
     FD_ZERO(&ReadSet);// 准备用于网络I/O通知的读/写套接字集合
     FD_ZERO(&WriteSet);
     FD_SET(ListenSocket, &ReadSet);// 向ReadSet集合中添加监听套接字ListenSocket
-                                   // 将SocketArray数组中的所有套接字添加到WriteSet和ReadSet集合中,SocketArray数组中保存着监听套接字和所有与客户端进行通信的套接字
-                                   // 这样就可以使用select()判断哪个套接字有接入数据或者读取/写入数据
+   // 将SocketArray数组中的所有套接字添加到WriteSet和ReadSet集合中,SocketArray数组中保存着监听套接字和所有与客户端进行通信的套接字
+   // 这样就可以使用select()判断哪个套接字有接入数据或者读取/写入数据
     for (DWORD i = 0; i < TotalSockets; i++)
     {
       LPSOCKET_INFORMATION SocketInfo = SocketArray[i];
@@ -199,9 +196,9 @@ void ServerNet::setCallback(decltype(callback) cb)
 
 BOOL   ServerNet::CreateSocketInformation(SOCKET   s)
 {
-  LPSOCKET_INFORMATION   SI;                                        // 用于保存套接字的信息       
-                                                                    //  printf("Accepted   socket   number   %d\n",   s);            // 打开已接受的套接字编号
-                                                                    // 为SI分配内存空间
+  LPSOCKET_INFORMATION   SI;   // 用于保存套接字的信息       
+                            //  printf("Accepted   socket   number   %d\n",   s); // 打开已接受的套接字编号
+                             // 为SI分配内存空间
   if ((SI = (LPSOCKET_INFORMATION) GlobalAlloc(GPTR, sizeof(SOCKET_INFORMATION))) == NULL)
   {
     printf("GlobalAlloc()   failed   with   error   %d\n", GetLastError());
@@ -211,11 +208,9 @@ BOOL   ServerNet::CreateSocketInformation(SOCKET   s)
   SI->Socket = s;
   SI->BytesSEND = 0;
   SI->BytesRECV = 0;
-
   // 在SocketArray数组中增加一个新元素，用于保存SI对象 
   SocketArray[TotalSockets] = SI;
   TotalSockets++;                        // 增加套接字数量
-
   return(TRUE);
 }
 
@@ -224,7 +219,6 @@ void   ServerNet::FreeSocketInformation(DWORD   Index)
 {
   LPSOCKET_INFORMATION SI = SocketArray[Index];    // 获取指定索引对应的LPSOCKET_INFORMATION对象
   DWORD   i;
-
   closesocket(SI->Socket);       // 关闭套接字
   GlobalFree(SI);   // 释放指定LPSOCKET_INFORMATION对象资源
                     // 将数组中index索引后面的元素前移
@@ -235,7 +229,6 @@ void   ServerNet::FreeSocketInformation(DWORD   Index)
       SocketArray[i] = SocketArray[i + 1];
     }
   }
-
   TotalSockets--;        // 套接字总数减1
 }
 

@@ -34,7 +34,17 @@ void Computer::setProcessorNum(int num)
   }
   else
   {
-    processorNum = min(num, actualProcessNum);
+    if (num < processorNum)
+    {
+      processorNum = num;
+    }
+    else
+    {
+      int newCores = min(num, actualProcessNum);
+      for (auto i = 0; i < newCores - processorNum; i++)
+        addProcessor();
+      processorNum = newCores;
+    }
   }
 }
 
@@ -56,6 +66,18 @@ int Computer::getIdleNum()
   return idleProcessor.size();
 }
 
+int Computer::getWorkingNum()
+{
+  lock_guard<mutex> lck(processorMutex);
+  return workingProcessor.size();
+}
+
+int Computer::getUnusedNum()
+{
+  lock_guard<mutex> lck(processorMutex);
+  return unUseProcessor.size();
+}
+
 void Computer::init()
 {
   if (!initFlag)
@@ -64,6 +86,13 @@ void Computer::init()
     for (auto i = 0; i < processorNum; i++)
     {
       idleProcessor.push_back(i);
+    }
+    if (processorNum < actualProcessNum)
+    {
+      for (auto i = processorNum; i < actualProcessNum; i++)
+      {
+        unUseProcessor.push_back(i);
+      }
     }
     initFlag = true;
   }
@@ -139,9 +168,12 @@ void Computer::removeProcess(shared_ptr<Process> process)
 
 shared_ptr<Process> Computer::suspendProcess()
 {
-  lock_guard<mutex> lck(processMutex);
-  shared_ptr<Process> process = doingProcesses.front();
-  doingProcesses.pop_front();
+  shared_ptr<Process> process;
+  {
+    lock_guard<mutex> lck(processMutex);
+    process = doingProcesses.front();
+    doingProcesses.pop_front();
+  }
   return process;
 }
 
@@ -162,18 +194,92 @@ decltype(Computer::doingProcesses) Computer::getDoingProcesses()
 
 void Computer::finishProcess(int processID, int processorID)
 {
-  cout << "process " << processID << " finished." << endl;
+  shared_ptr<Process> process;
+  for (auto p : doingProcesses)
   {
-    unique_lock<mutex> lck(processorMutex);
-    workingProcessor.remove(processorID);
-    idleProcessor.push_back(processorID);
-  }
-  for (auto process : doingProcesses)
-  {
-    if (processID == process->getProcessID())
+    if (processID == p->getProcessID())
     {
-      process->doCallback();
-      break;
+      if (p->getProcessorIndex() == processorID)
+      {
+        cout << "process " << processID << " finished." << endl;
+        process = p;
+        break;
+      }
     }
+  }
+  if (process)
+  {
+    {
+      unique_lock<mutex> lck(processorMutex);
+      if (find(workingProcessor.begin(), workingProcessor.end(), processorID) != workingProcessor.end())
+      {
+        workingProcessor.remove(processorID);
+        idleProcessor.push_back(processorID);
+        cout << "processor " << processorID << " now idle." << endl;
+      }
+      else
+      {
+        cout << "processor " << processorID << " is lazily shutdown." << endl;
+        if (actualProcessNum - processorNum <= unUseProcessor.size())
+        {
+          //here when lazyset again
+          idleProcessor.push_back(processorID);
+        }
+        else
+        {
+          unUseProcessor.push_back(processorID);
+        }
+      }
+    }
+    process->doCallback();
+  }
+  else
+  {
+    cout << "process " << processID << " is restarted." << endl;
+  }
+}
+
+void Computer::removeIdleProcessor()
+{
+  lock_guard<mutex> lck(processorMutex);
+  if (idleProcessor.size() > 0)
+  {
+    int processor = idleProcessor.front();
+    idleProcessor.pop_front();
+    unUseProcessor.push_back(processor);
+  }
+}
+
+
+void Computer::removeWorkingProcessor(int processorId)
+{
+  lock_guard<mutex> lck(processorMutex);
+  auto iter = find(workingProcessor.begin(), workingProcessor.end(), processorId);
+  if (iter != workingProcessor.end())
+  {
+    workingProcessor.remove(processorId);
+    unUseProcessor.push_back(processorId);
+  }
+}
+
+void Computer::lazyRemoveProcessor(int num)
+{
+  lock_guard<mutex> lck(processorMutex);
+  assert(num <= workingProcessor.size());
+  for (auto i = 0; i < num; i++)
+  {
+    workingProcessor.pop_front();
+  }
+}
+
+
+void Computer::addProcessor()
+{
+  unique_lock<mutex> lck(processorMutex);
+  if (unUseProcessor.size() > 0)
+  {
+    int processor = unUseProcessor.front();
+    unUseProcessor.pop_front();
+    idleProcessor.push_back(processor);
   }
 }

@@ -15,6 +15,7 @@ private:
   mutex processMutex;
   list<int> workingProcessor;
   list<int> idleProcessor;
+  list<int> unUseProcessor;
   map<int,thread> workingThread;
   list<shared_ptr<Process>> doingProcesses;
 public:
@@ -27,6 +28,8 @@ public:
   int getActualProcessorNum() const;
   void setActualProcessorNum(int num);
   int getIdleNum();
+  int getWorkingNum();
+  int getUnusedNum();
   void init();
   void reset();
   void startOneTask(shared_ptr<Process> process);
@@ -37,4 +40,8 @@ public:
   void clearProcess();
   list<shared_ptr<Process>> getDoingProcesses();
   void finishProcess(int processID, int processorID);
+  void removeIdleProcessor();
+  void removeWorkingProcessor(int processorId);
+  void lazyRemoveProcessor(int num);
+  void addProcessor();
 };

@@ -74,5 +74,5 @@ void Process::reset()
 {
   callback = nullptr;
   ipAddr = "";
-  processorNumber = 0;
+  processorNumber = -1;
 }
