@@ -1,6 +1,6 @@
 #include "Process.h"
 
-Process::Process(int t_id, int p_id, shared_ptr<Task> t)
+Process::Process(decltype(taskID) t_id, decltype(processID) p_id, shared_ptr<Task> t)
 {
   taskID = t_id;
   processID = p_id;
@@ -12,12 +12,12 @@ Process::~Process()
 }
 
 
-int Process::getProcessID() const
+auto Process::getProcessID() const ->decltype(processID)
 {
   return processID;
 }
 
-int Process::getTaskID() const
+auto Process::getTaskID() const ->decltype(taskID)
 {
   return taskID;
 }
@@ -28,20 +28,26 @@ shared_ptr<Task> Process::getTask() const
   return ret;
 }
 
-string& Process::getIpAddr()
+auto Process::getIpAddr() ->decltype(ipAddr)&
 {
   return ipAddr;
 }
 
-int& Process::getProcessorIndex()
+auto Process::getProcessorIndex()->decltype(processorNumber)&
 {
   return processorNumber;
 }
 
-string& Process::getRemoteAddr()
+auto Process::getRemoteAddr()->decltype(remoteAddr)&
 {
   return remoteAddr;
 }
+
+decltype(Process::remoteExe)& Process::getRemoteBat()
+{
+  return remoteExe;
+}
+
 
 void Process::startProcess()
 {

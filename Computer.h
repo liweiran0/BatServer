@@ -1,7 +1,6 @@
 #pragma once
 #include "CommonDef.h"
-#include "ClientNet.h"
-#include <map>
+
 class Process;
 class Computer
 {
@@ -13,10 +12,10 @@ private:
   bool initFlag = false;
   mutex processorMutex;
   mutex processMutex;
-  list<int> workingProcessor;
-  list<int> idleProcessor;
-  list<int> unUseProcessor;
-  map<int,thread> workingThread;
+  list<string> workingProcessor;
+  list<string> idleProcessor;
+  list<string> unUseProcessor;
+  map<string, thread> workingThread;
   list<shared_ptr<Process>> doingProcesses;
 public:
   Computer();
@@ -39,9 +38,9 @@ public:
   shared_ptr<Process> suspendProcess();
   void clearProcess();
   list<shared_ptr<Process>> getDoingProcesses();
-  void finishProcess(int processID, int processorID);
+  void finishProcess(string processID, string processorID);
   void removeIdleProcessor();
-  void removeWorkingProcessor(int processorId);
+  void removeWorkingProcessor(string processorId);
   void lazyRemoveProcessor(int num);
   void addProcessor();
 };

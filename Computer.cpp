@@ -1,4 +1,5 @@
 #include "Computer.h"
+#include "ClientNet.h"
 #include "Process.h"
 #include "Task.h"
 
@@ -85,13 +86,13 @@ void Computer::init()
     lock_guard<mutex> lck(processorMutex);
     for (auto i = 0; i < processorNum; i++)
     {
-      idleProcessor.push_back(i);
+      idleProcessor.push_back(to_string(i));
     }
     if (processorNum < actualProcessNum)
     {
       for (auto i = processorNum; i < actualProcessNum; i++)
       {
-        unUseProcessor.push_back(i);
+        unUseProcessor.push_back(to_string(i));
       }
     }
     initFlag = true;
@@ -114,7 +115,7 @@ void Computer::startOneTask(shared_ptr<Process> process)
   //copy
   //start
   unique_lock<mutex> lck(processorMutex);
-  int processor = idleProcessor.front();
+  auto processor = idleProcessor.front();
   idleProcessor.pop_front();
   workingProcessor.push_back(processor);
   addProcess(process);
@@ -142,12 +143,14 @@ void Computer::doingThread(shared_ptr<Process> process)
   //}
   //process->doCallback();
   process->getRemoteAddr() = "d:/alanlee/e2/";
-  string cmd = "start:";
+  process->getRemoteBat() = "\\\\10.8.0.132\\AlanLee\\bat.exe";
+  string cmd = "cmd=\"start\":taskid=\"";
   auto task = process->getTask();
   string taskName = "";
   if (task)
     taskName = task->getTaskName();
-  cmd += to_string(process->getTaskID()) + ":" + taskName + ":" + to_string(process->getProcessID()) + ":" + to_string(process->getProcessorIndex()) + ":" + process->getRemoteAddr();
+  cmd += process->getTaskID() + "\":taskname=\"" + taskName + "\":processid=\"" + process->getProcessID() + "\":coreid=\"" + process->getProcessorIndex() + "\":bat=\"" + process->getRemoteBat() + "\":logdir=\"" + process->getRemoteAddr() + "\"";
+  //cmd="start":taskid="TaskID":taskname="TaskName":processid="ProcessID":coreid="ProcessorID":bat="LocalScriptName":logdir="RemoteLogDir"
   ClientNet client;
   client.Connect(ipAddr.c_str(), fixPort);
   client.SendMsg(cmd);
@@ -192,7 +195,7 @@ decltype(Computer::doingProcesses) Computer::getDoingProcesses()
   return ret;
 }
 
-void Computer::finishProcess(int processID, int processorID)
+void Computer::finishProcess(string processID, string processorID)
 {
   shared_ptr<Process> process;
   for (auto p : doingProcesses)
@@ -235,7 +238,7 @@ void Computer::finishProcess(int processID, int processorID)
   }
   else
   {
-    cout << "process " << processID << " is restarted." << endl;
+    cout << "process " + processID + " is restarted." << endl;
   }
 }
 
@@ -244,14 +247,14 @@ void Computer::removeIdleProcessor()
   lock_guard<mutex> lck(processorMutex);
   if (idleProcessor.size() > 0)
   {
-    int processor = idleProcessor.front();
+    auto processor = idleProcessor.front();
     idleProcessor.pop_front();
     unUseProcessor.push_back(processor);
   }
 }
 
 
-void Computer::removeWorkingProcessor(int processorId)
+void Computer::removeWorkingProcessor(string processorId)
 {
   lock_guard<mutex> lck(processorMutex);
   auto iter = find(workingProcessor.begin(), workingProcessor.end(), processorId);
@@ -278,7 +281,7 @@ void Computer::addProcessor()
   unique_lock<mutex> lck(processorMutex);
   if (unUseProcessor.size() > 0)
   {
-    int processor = unUseProcessor.front();
+    auto processor = unUseProcessor.front();
     unUseProcessor.pop_front();
     idleProcessor.push_back(processor);
   }

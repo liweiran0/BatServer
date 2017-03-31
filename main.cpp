@@ -3,8 +3,6 @@
 #include "Process.h"
 #include "ServerNet.h"
 
-void mainCallback(string cmd, SOCKET sock);
-
 void main(int argv, char* argc[])
 {
   string fileName("computers.cfg");
@@ -25,58 +23,30 @@ void main(int argv, char* argc[])
   manager->startWork();
   for (int i = 0; i < 10;i ++)
   {
-    shared_ptr<Task> task(new Task(i));
+    string task_id = to_string(i);
+    string task_name = "task_" + task_id;
+    shared_ptr<Task> task(new Task(task_id));
     task->getTaskOwner() = "alanlee";
-    task->getTaskName() = to_string(i);
+    task->getTaskName() = task_name;
     task->getProcessNumbers() = 50;
     task->getTotalCores() = 10;
     if (task->getTotalCores() > 40)
       task->getTotalCores() = 40;
     for (int j = 0; j < task->getProcessNumbers(); j++)
     {
-      shared_ptr<Process> process(new Process(i, i * 100 + j, task));
+      string processid = to_string(i * 100 + j);
+      shared_ptr<Process> process(new Process(task_id, processid, task));
       task->getProcesses().push_back(process);
     }
     manager->addNewTask(task);
   }
   
   ServerNet mainServer;
-  string localIP = getLocalIpAddress();
+  //string localIP = getLocalIpAddress();
  // if (localIP == "")
-    localIP = "127.0.0.1";
+    //localIP = "127.0.0.1";
+  string localIP = "";
   mainServer.init(localIP.c_str(), port);
-  mainServer.setCallback(bind(mainCallback, placeholders::_1, placeholders::_2));
+  mainServer.setCallback(bind(&Manager::workerCallback, manager, placeholders::_1, placeholders::_2));
   mainServer.run();
-}
-
-void mainCallback(string cmd, SOCKET sock)
-{
-  string ret;
-  if (cmd.find("register") == 0)
-  {
-    //cmd: register:IPAddr:port:CoreNumber
-    cmd = cmd.substr(cmd.find_first_of(":") + 1);
-    string ip = cmd.substr(0, cmd.find_first_of(":"));
-    cmd = cmd.substr(cmd.find_first_of(":") + 1);
-    int port = stoi(cmd.substr(0, cmd.find_first_of(":")));
-    cmd = cmd.substr(cmd.find_first_of(":") + 1);
-    int cores = stoi(cmd);
-    Manager::get_instance()->registerComputer(ip, port, cores);
-    ret = "OK";
-  }
-  else if (cmd.find("finish") == 0)
-  {
-    //cmd: finish:IPAddr:taskID:processID:processorID
-    cmd = cmd.substr(cmd.find_first_of(":") + 1);
-    string ip = cmd.substr(0, cmd.find_first_of(":"));
-    cmd = cmd.substr(cmd.find_first_of(":") + 1);
-    int tid = stoi(cmd.substr(0, cmd.find_first_of(":")));
-    cmd = cmd.substr(cmd.find_first_of(":") + 1);
-    int pid = stoi(cmd.substr(0, cmd.find_first_of(":")));
-    cmd = cmd.substr(cmd.find_first_of(":") + 1);
-    int processorID = stoi(cmd);
-    Manager::get_instance()->processorFinishOneTask(ip, tid, pid, processorID);
-    ret = "OK";
-  }
-  send(sock, ret.c_str(), ret.length(), 0);
 }

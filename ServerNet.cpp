@@ -144,9 +144,11 @@ void ServerNet::run()
             }
             else
             {
+              SocketInfo->cmd_str += SocketInfo->DataBuf.buf;
+              string cmd = getCommandFromString(SocketInfo->cmd_str);
               //cout << SocketInfo->DataBuf.buf << endl;// 如果成功接收数据，则打印收到的数据
-              if (callback)
-                callback(SocketInfo->DataBuf.buf, SocketInfo->Socket);
+              if (cmd != "" && callback)
+                callback(cmd, SocketInfo->Socket);
             }
           }
         }
@@ -329,3 +331,25 @@ short getUnusedPort(short start_port)
   }
   return 0;
 }
+
+string getCommandFromString(string& str)
+{
+  string ret = "";
+  auto brace = str.find_first_of("{");
+  if (brace != string::npos)
+  {
+    str = str.substr(brace);
+    auto backbrace = str.find_first_of("}");
+    if (backbrace != string::npos)
+    {
+      ret = str.substr(1, backbrace - 1);
+      str = str.substr(backbrace + 1);
+    }
+  }
+  else
+  {
+    str = "";
+  }
+  return ret;
+}
+

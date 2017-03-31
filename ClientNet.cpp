@@ -39,6 +39,7 @@ int ClientNet::SendMsg(string msg)
 {
   int rlt = 0;
   int iErrMsg;
+  msg = "{" + msg + "}";
   iErrMsg = send(m_sock, msg.c_str(), msg.length(), 0);
   //cout << "send msg :" << msg << endl;
   if (iErrMsg < 0)

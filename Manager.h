@@ -23,19 +23,21 @@ public:
   void addNewTask(shared_ptr<Task>);
   void telnetWork();
   void telnetCallback(string cmd, SOCKET sock);
+  void workerCallback(string cmd, SOCKET sock);
   void registerComputer(string ip, int port, int cores);
-  void processorFinishOneTask(string ip, int taskID, int processID, int processorID);
+  void processorFinishOneTask(string ip, string taskID, string processID, string processorID);
 private:
   Manager();
   void addAvailableComputer(shared_ptr<Computer> computer);
   void working();
-  void accelerateTaskByID(int id);
-  void killTaskByID(int id);
-  void setTaskAttr(int id, int cores);
+  void accelerateTaskByID(string id);
+  void killTaskByID(string id);
+  void setTaskAttr(string id, int cores);
   void addNewComputer(shared_ptr<Computer> computer);
   void removeComputer(string ip);
   void setComputerAttr(string ip, int cores);
   void lazySetComputerAttr(string ip, int cores);
+  void parseCommand(string cmd, map<string, string>& param);
 
   static Manager* instance;
   list<shared_ptr<Process>> processQueue;

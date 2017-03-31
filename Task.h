@@ -22,16 +22,16 @@ private:
   int totalCores = INT_MAX;  // max cores to do the task
 
   string fileAddress = "";   // where to store the files and results
-  int taskID;           // unique task id
+  string taskID;           // unique task id
   int processNumbers = 0;   // total process numbers
 
   int finishedNumber = 0;   // the number of finished processes
   int processingNumber = 0; // the number of processes under processing
-  int firstProcessIDInQueue = 0; // the first ID of process in queue
+  string firstProcessIDInQueue = ""; // the first ID of process in queue
   vector<shared_ptr<Process>> processes; // all the processes
   function<void(void)> afterProcessing;
 public:
-  Task(int id);
+  Task(decltype(taskID) id);
   ~Task();
   string& getTaskOwner();
   string& getTaskName();
@@ -39,11 +39,11 @@ public:
   TaskType& getTaskType();
   int &getTotalCores();
   string& getFileAddress();
-  int getTaskID()const;
+  decltype(taskID) getTaskID()const;
   int &getProcessNumbers();
   int &getFinishedNumber();
   int &getProcessingNumber();
-  int &getFirstProcessIDInQueue();
+  decltype(firstProcessIDInQueue) &getFirstProcessIDInQueue();
   vector<shared_ptr<Process>>& getProcesses();
   void setCallback(function<void(void)> cb);
   void doCallback();
@@ -52,18 +52,18 @@ public:
 class TaskInfo
 {
 private:
-  int taskID;
+  string taskID;
   string taskName;
   string taskOwner;
   TaskType taskType;
   string taskPath;
   chrono::system_clock::time_point finishedTime;
 public:
-  TaskInfo(int id, string name, string owner, TaskType type);
+  TaskInfo(decltype(taskID) id, string name, string owner, TaskType type);
   ~TaskInfo();
   string& getTaskPath();
   chrono::system_clock::time_point getTaskFinishedTime() const;
-  int getTaskID()const;
+  decltype(taskID) getTaskID()const;
   string getTaskOwner()const;
   string getTaskName()const;
   TaskType getTaskType()const;

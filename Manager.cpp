@@ -192,9 +192,10 @@ void Manager::addNewTask(shared_ptr<Task> task)
 void Manager::telnetWork()
 {
   ServerNet server;
-  string localIP = getLocalIpAddress();
+  //string localIP = getLocalIpAddress();
   //if (localIP == "")
-    localIP = "127.0.0.1";
+  //  localIP = "127.0.0.1";
+  string localIP = "";
   server.init(localIP.c_str(), 20000);
   server.setCallback(bind(&Manager::telnetCallback, this, placeholders::_1, placeholders::_2));
   server.run();
@@ -239,7 +240,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
           stringstream ss;
           ss << put_time(localtime(&time), "%F %T");
           string timeConvert = ss.str();
-          ret += "  id:" + to_string((*iter).getTaskID()) + "  owner:" + (*iter).getTaskOwner() + "  name:" + (*iter).getTaskName() + "\r\n"
+          ret += "  id:" + (*iter).getTaskID() + "  owner:" + (*iter).getTaskOwner() + "  name:" + (*iter).getTaskName() + "\r\n"
             + "    finished time:" + timeConvert + "\r\n";
         }
       }
@@ -247,7 +248,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
         ret += "TaskID\tTotal\tDone\tDoing\tTaskOwner\tTaskName\r\n";
       for (auto task : processingTaskQueue)
       {
-        ret += to_string(task->getTaskID()) + "\t" + to_string(task->getProcessNumbers()) + "\t"
+        ret += task->getTaskID() + "\t" + to_string(task->getProcessNumbers()) + "\t"
           + to_string(task->getFinishedNumber()) + "\t" + to_string(task->getProcessingNumber()) + "\t"
           + task->getTaskOwner() + "\t\t" + task->getTaskName() + "\r\n";
       }
@@ -262,7 +263,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
       if (processQueue.size() > 0)
       {
         auto process = processQueue.front();
-        ret += string("The first process id:") + to_string(process->getProcessID()) + " belongs to taskID:" + to_string(process->getTaskID()) + "\r\n";
+        ret += string("The first process id:") + process->getProcessID() + " belongs to taskID:" + process->getTaskID() + "\r\n";
       }
     }
   }
@@ -297,7 +298,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   else if (cmd.find("acctask") == 0)
   {
     stringstream ss(cmd);
-    int taskID = 0;
+    string taskID = 0;
     string tmp;
     ss >> tmp >> taskID;
     accelerateTaskByID(taskID);
@@ -305,7 +306,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   else if (cmd.find("killtask") == 0)
   {
     stringstream ss(cmd);
-    int taskID = 0;
+    string taskID = 0;
     string tmp;
     ss >> tmp >> taskID;
     killTaskByID(taskID);
@@ -313,7 +314,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   else if (cmd.find("settask") == 0)
   {
     stringstream ss(cmd);
-    int taskID = 0;
+    string taskID = 0;
     int newCores = 0;
     string tmp;
     ss >> tmp >> taskID >> newCores;
@@ -349,7 +350,28 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
     send(sock, ret.c_str(), ret.length(), 0);
 }
 
-void Manager::accelerateTaskByID(int id)
+void Manager::workerCallback(string cmd, SOCKET sock)
+{
+  string ret;
+  map<string, string> param;
+  parseCommand(cmd, param);
+  if (param["cmd"] == "register")
+  {
+    //cmd="register":ip="IPAddr":port="port":corenum="CoreNumber"
+    Manager::get_instance()->registerComputer(param["ip"], stoi(param["port"]), stoi(param["corenum"]));
+    ret = "OK";
+  }
+  else if (param["cmd"] == "finish")
+  {
+    //cmd="finish":ip="IPAddr":taskid="taskID":processid="processID":coreid="processorID"
+    Manager::get_instance()->processorFinishOneTask(param["ip"], param["taskid"], param["processid"], param["coreid"]);
+    ret = "OK";
+  }
+  send(sock, ret.c_str(), ret.length(), 0);
+}
+
+
+void Manager::accelerateTaskByID(string id)
 {
   bool foundTask = false; 
   {
@@ -382,7 +404,7 @@ void Manager::accelerateTaskByID(int id)
 }
 
 
-void Manager::killTaskByID(int id)
+void Manager::killTaskByID(string id)
 {
   bool foundTask = false;
   shared_ptr<Task> taskToBeKilled;
@@ -414,7 +436,7 @@ void Manager::killTaskByID(int id)
   }
 }
 
-void Manager::setTaskAttr(int id, int cores)
+void Manager::setTaskAttr(string id, int cores)
 {
   lock_guard<mutex> lck(taskMutex);
   for (auto task : processingTaskQueue)
@@ -686,7 +708,7 @@ void Manager::lazySetComputerAttr(string ip, int cores)
 }
 
 
-void Manager::processorFinishOneTask(string ip, int taskID, int processID, int processorID)
+void Manager::processorFinishOneTask(string ip, string taskID, string processID, string processorID)
 {
   shared_ptr<Computer> computer;
   {
@@ -714,5 +736,30 @@ void Manager::processorFinishOneTask(string ip, int taskID, int processID, int p
   if (computer)
   {
     computer->finishProcess(processID, processorID);
+  }
+}
+
+void Manager::parseCommand(string cmd, map<string, string>& param)
+{
+  while (cmd != "")
+  {
+    auto firstLoc = cmd.find_first_not_of("=:\"");
+    auto lastLoc = cmd.find_first_of("=");
+    if (firstLoc != string::npos && lastLoc != string::npos)
+    {
+      auto len = lastLoc - firstLoc;
+      string Key = cmd.substr(firstLoc, len);
+      cmd = cmd.substr(lastLoc + 2);
+      lastLoc = cmd.find_first_of("\"");
+      string Value = "";
+      if (lastLoc != string::npos)
+        Value = cmd.substr(0, lastLoc);
+      param[Key] = Value;
+      cmd = cmd.substr(lastLoc + 1);
+    }
+    else
+    {
+      break;
+    }
   }
 }

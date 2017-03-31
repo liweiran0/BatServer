@@ -5,23 +5,25 @@ class Task;
 class Process : public enable_shared_from_this<Process>
 {
 private:
-  int taskID;           // taskID
-  int processID;        // unique processID
+  string taskID;           // taskID
+  string processID;        // unique processID
   chrono::system_clock::time_point startTime; // process start time
   string ipAddr;        // ip address
-  int processorNumber = 0;  // processor number
+  string processorNumber = "";  // processor number
   string remoteAddr;    // remote file address
+  string remoteExe;     // remote bat file
   weak_ptr<Task> task;  // task ptr
   function<void(shared_ptr<Process>)> callback;
 public:
-  Process(int t_id, int p_id, shared_ptr<Task> task);
+  Process(decltype(taskID) t_id, decltype(processID) p_id, shared_ptr<Task> task);
   ~Process();
-  int getTaskID()const;
-  int getProcessID()const;
+  decltype(taskID) getTaskID()const;
+  decltype(processID) getProcessID()const;
   shared_ptr<Task> getTask()const;
-  string& getIpAddr();
-  int & getProcessorIndex();
-  string& getRemoteAddr();
+  decltype(ipAddr)& getIpAddr();
+  decltype(processorNumber) & getProcessorIndex();
+  decltype(remoteAddr)& getRemoteAddr();
+  decltype(remoteExe)& getRemoteBat();
   void startProcess();
   auto getStartTime() const;
   auto getRunningTime();

@@ -1,6 +1,6 @@
 #include "Task.h"
 
-Task::Task(int id)
+Task::Task(decltype(taskID) id)
 {
   taskID = id;
 }
@@ -40,7 +40,7 @@ string& Task::getFileAddress()
   return fileAddress;
 }
 
-int Task::getTaskID() const
+auto Task::getTaskID() const->decltype(taskID)
 {
   return taskID;
 }
@@ -60,7 +60,7 @@ int& Task::getProcessingNumber()
   return processingNumber;
 }
 
-int& Task::getFirstProcessIDInQueue()
+auto Task::getFirstProcessIDInQueue()->decltype(firstProcessIDInQueue)&
 {
   return firstProcessIDInQueue;
 }
@@ -86,7 +86,7 @@ void Task::doCallback()
 }
 
 
-TaskInfo::TaskInfo(int id, string name, string owner, TaskType type):taskID(id),taskName(name),taskOwner(owner),taskType(type)
+TaskInfo::TaskInfo(decltype(taskID) id, string name, string owner, TaskType type):taskID(id),taskName(name),taskOwner(owner),taskType(type)
 {
   finishedTime = chrono::system_clock::now();
 }
@@ -107,7 +107,7 @@ chrono::system_clock::time_point TaskInfo::getTaskFinishedTime() const
   return finishedTime;
 }
 
-int TaskInfo::getTaskID() const
+auto TaskInfo::getTaskID() const->decltype(taskID)
 {
   return taskID;
 }
