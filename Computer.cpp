@@ -101,7 +101,7 @@ void Computer::init()
 
 void Computer::reset()
 {
-  clearProcess();
+  clearProcesses();
   processorNum = actualProcessNum;
   initFlag = false;
   idleProcessor.clear();
@@ -180,8 +180,34 @@ shared_ptr<Process> Computer::suspendProcess()
   return process;
 }
 
+void Computer::killProcess(shared_ptr<Process> process)
+{
+  string cmd = "cmd=\"kill\":taskid=\"" + process->getTaskID() + "\":processid=\"" + process->getProcessID();
+  cmd += "\":coreid=\"" + process->getProcessorIndex() + "\":bat=\"" + process->getRemoteBat() + "\"";
+  //cmd="kill":taskid="taskID":processid="processID":coreid="ProcessorID":bat="RemoteScriptBat"
+  ClientNet client;
+  client.Connect(ipAddr.c_str(), fixPort);
+  client.SendMsg(cmd);
+  client.Close();
+}
 
-void Computer::clearProcess()
+void Computer::killTask(shared_ptr<Task> task)
+{
+  if (task)
+  {
+    for (auto process : task->getProcesses())
+    {
+      if (process->getIpAddr() == ipAddr)
+      {
+        killProcess(process);
+      }
+    }
+  }
+}
+
+
+
+void Computer::clearProcesses()
 {
   lock_guard<mutex> lck(processMutex);
   doingProcesses.clear();
@@ -240,6 +266,25 @@ void Computer::finishProcess(string processID, string processorID)
   {
     cout << "process " + processID + " is restarted." << endl;
   }
+}
+
+void Computer::killedProcess(string processID, string processorID)
+{
+  unique_lock<mutex> lck(processorMutex);
+  if (find(workingProcessor.begin(), workingProcessor.end(), processorID) != workingProcessor.end())
+  {
+    workingProcessor.remove(processorID);
+    if (actualProcessNum - processorNum > unUseProcessor.size())
+    {
+      unUseProcessor.push_back(processorID);
+    }
+    else
+    {
+      idleProcessor.push_back(processorID);
+      cout << "processor " << processorID << " now idle." << endl;
+    }
+  }
+  cout << "process " + processID + "at core " + processorID + " is killed." << endl;
 }
 
 void Computer::removeIdleProcessor()

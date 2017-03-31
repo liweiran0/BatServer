@@ -2,6 +2,7 @@
 #include "CommonDef.h"
 
 class Process;
+class Task;
 class Computer
 {
 private:
@@ -36,9 +37,12 @@ public:
   void addProcess(shared_ptr<Process> process);
   void removeProcess(shared_ptr<Process> process);
   shared_ptr<Process> suspendProcess();
-  void clearProcess();
+  void killProcess(shared_ptr<Process> process);
+  void killTask(shared_ptr<Task> task);
+  void clearProcesses();
   list<shared_ptr<Process>> getDoingProcesses();
   void finishProcess(string processID, string processorID);
+  void killedProcess(string processID, string processorID);
   void removeIdleProcessor();
   void removeWorkingProcessor(string processorId);
   void lazyRemoveProcessor(int num);

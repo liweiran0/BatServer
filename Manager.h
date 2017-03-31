@@ -25,7 +25,7 @@ public:
   void telnetCallback(string cmd, SOCKET sock);
   void workerCallback(string cmd, SOCKET sock);
   void registerComputer(string ip, int port, int cores);
-  void processorFinishOneTask(string ip, string taskID, string processID, string processorID);
+  void selectComputerToCallback(string cmd, string ip, string taskID, string processID, string processorID);
 private:
   Manager();
   void addAvailableComputer(shared_ptr<Computer> computer);
@@ -37,6 +37,7 @@ private:
   void removeComputer(string ip);
   void setComputerAttr(string ip, int cores);
   void lazySetComputerAttr(string ip, int cores);
+  shared_ptr<Computer> getComputerByIP(string ip);
   void parseCommand(string cmd, map<string, string>& param);
 
   static Manager* instance;

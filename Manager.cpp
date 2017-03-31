@@ -298,7 +298,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   else if (cmd.find("acctask") == 0)
   {
     stringstream ss(cmd);
-    string taskID = 0;
+    string taskID = "";
     string tmp;
     ss >> tmp >> taskID;
     accelerateTaskByID(taskID);
@@ -306,7 +306,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   else if (cmd.find("killtask") == 0)
   {
     stringstream ss(cmd);
-    string taskID = 0;
+    string taskID = "";
     string tmp;
     ss >> tmp >> taskID;
     killTaskByID(taskID);
@@ -314,7 +314,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   else if (cmd.find("settask") == 0)
   {
     stringstream ss(cmd);
-    string taskID = 0;
+    string taskID = "";
     int newCores = 0;
     string tmp;
     ss >> tmp >> taskID >> newCores;
@@ -364,7 +364,13 @@ void Manager::workerCallback(string cmd, SOCKET sock)
   else if (param["cmd"] == "finish")
   {
     //cmd="finish":ip="IPAddr":taskid="taskID":processid="processID":coreid="processorID"
-    Manager::get_instance()->processorFinishOneTask(param["ip"], param["taskid"], param["processid"], param["coreid"]);
+    Manager::get_instance()->selectComputerToCallback("finish", param["ip"], param["taskid"], param["processid"], param["coreid"]);
+    ret = "OK";
+  }
+  else if (param["cmd"] == "killed")
+  {
+    //cmd="kill":ip="IPAddr":taskid="taskID":processid="processID":coreid="processorID"
+    Manager::get_instance()->selectComputerToCallback("killed", param["ip"], param["taskid"], param["processid"], param["coreid"]);
     ret = "OK";
   }
   send(sock, ret.c_str(), ret.length(), 0);
@@ -406,7 +412,6 @@ void Manager::accelerateTaskByID(string id)
 
 void Manager::killTaskByID(string id)
 {
-  bool foundTask = false;
   shared_ptr<Task> taskToBeKilled;
   {
     lock_guard<mutex> lck(taskMutex);
@@ -414,23 +419,37 @@ void Manager::killTaskByID(string id)
     {
       if (task->getTaskID() == id)
       {
-        foundTask = true;
         taskToBeKilled = task;
         processingTaskQueue.erase(task);
         break;
       }
     }
   }
-  if (foundTask)
+  if (taskToBeKilled)
   {
-    unique_lock<mutex> lck(queueMutex);
-    for (auto iter = processQueue.begin(); iter != processQueue.end();)
+    //remove processes that not have been started
     {
-      shared_ptr<Process> proc = *iter;
-      ++iter;
-      if (proc && proc->getTaskID() == id)
+      unique_lock<mutex> lck(queueMutex);
+      for (auto iter = processQueue.begin(); iter != processQueue.end();)
       {
-        processQueue.remove(proc);
+        shared_ptr<Process> proc = *iter;
+        ++iter;
+        if (proc && proc->getTaskID() == id)
+        {
+          processQueue.remove(proc);
+        }
+      }
+    }
+    //kill the processes that have already been started
+    {
+      lock_guard<mutex> lck(computerMutex);
+      for (auto computer : idleComputers)
+      {
+        computer->killTask(taskToBeKilled);
+      }
+      for (auto computer: fullWorkingComputers)
+      {
+        computer->killTask(taskToBeKilled);
       }
     }
   }
@@ -708,7 +727,7 @@ void Manager::lazySetComputerAttr(string ip, int cores)
 }
 
 
-void Manager::processorFinishOneTask(string ip, string taskID, string processID, string processorID)
+void Manager::selectComputerToCallback(std::string cmd, std::string ip, std::string taskID, std::string processID, std::string processorID)
 {
   shared_ptr<Computer> computer;
   {
@@ -735,9 +754,39 @@ void Manager::processorFinishOneTask(string ip, string taskID, string processID,
   }
   if (computer)
   {
-    computer->finishProcess(processID, processorID);
+    if (cmd == "finish")
+      computer->finishProcess(processID, processorID);
+    if (cmd == "killed")
+      computer->killedProcess(processID, processorID);
   }
 }
+
+shared_ptr<Computer> Manager::getComputerByIP(string ip)
+{
+  shared_ptr<Computer> computer;
+  lock_guard<mutex> lck(computerMutex);
+  for (auto c : idleComputers)
+  {
+    if (c->getIpAddr() == ip)
+    {
+      computer = c;
+      break;
+    }
+  }
+  if (!computer)
+  {
+    for (auto c : fullWorkingComputers)
+    {
+      if (c->getIpAddr() == ip)
+      {
+        computer = c;
+        break;
+      }
+    }
+  }
+  return computer;
+}
+
 
 void Manager::parseCommand(string cmd, map<string, string>& param)
 {

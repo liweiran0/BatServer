@@ -4,6 +4,7 @@
 Change type of taskid, processid, processorid to string.
 Use a new string parse function to avoid incomplete message in tcp transmission.
 Change the callback of commands from main.cpp to manager.cpp.
+Add kill command.
 
 2017-3-30
 Use select in Server.
