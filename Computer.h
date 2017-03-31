@@ -41,8 +41,8 @@ public:
   void killTask(shared_ptr<Task> task);
   void clearProcesses();
   list<shared_ptr<Process>> getDoingProcesses();
-  void finishProcess(string processID, string processorID);
-  void killedProcess(string processID, string processorID);
+  int finishProcess(string processID, string processorID);
+  int killedProcess(string processID, string processorID);
   void removeIdleProcessor();
   void removeWorkingProcessor(string processorId);
   void lazyRemoveProcessor(int num);

@@ -271,20 +271,20 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   {
     ret += "==========================================================\r\n";
     {
-      ret += "ComputerIP\tCores\tInuse\tIdle\tUnused\tWorking\r\n";
+      ret += "ComputerIP\tCores\tInuse\tUnused\tIdle\tWorking\r\n";
       lock_guard<mutex> lck(computerMutex);
+      list<shared_ptr<Computer>> computerList;
       for (auto computer: fullWorkingComputers)
-      {
-        ret += computer->getIpAddr() + "\t" + to_string(computer->getActualProcessorNum()) + "\t" 
-             + to_string(computer->getProcessorNum()) + "\t" + to_string(computer->getIdleNum()) + "\t" 
-             + to_string(computer->getUnusedNum()) + "\t" + to_string(computer->getWorkingNum()) + "\r\n";
-      }
+        computerList.push_back(computer);
       for (auto computer : idleComputers)
+        computerList.push_back(computer);
+      for (auto computer : computerList)
       {
         ret += computer->getIpAddr() + "\t" + to_string(computer->getActualProcessorNum()) + "\t"
-          + to_string(computer->getProcessorNum()) + "\t" + to_string(computer->getIdleNum()) + "\t"
-          + to_string(computer->getUnusedNum()) + "\t" + to_string(computer->getWorkingNum()) + "\r\n";
+          + to_string(computer->getProcessorNum()) + "\t" + to_string(computer->getUnusedNum()) + "\t"
+          + to_string(computer->getIdleNum()) + "\t" + to_string(computer->getWorkingNum()) + "\r\n";
       }
+
       if (unregisteredComputers.size() > 0)
       {
         ret += "Unregistered computers\r\n";
@@ -534,7 +534,7 @@ void Manager::removeComputer(string ip)
     }
   }
   {
-    int count = processes.size();
+    auto count = processes.size();
     for (auto process : processes)
     {
       process->reset();
@@ -754,10 +754,18 @@ void Manager::selectComputerToCallback(std::string cmd, std::string ip, std::str
   }
   if (computer)
   {
+    int ret;
     if (cmd == "finish")
-      computer->finishProcess(processID, processorID);
+      ret = computer->finishProcess(processID, processorID);
     if (cmd == "killed")
-      computer->killedProcess(processID, processorID);
+    {
+      ret = computer->killedProcess(processID, processorID);
+      if (ret == 1)
+      {
+        unique_lock<mutex> lck(computerMutex);
+        addAvailableComputer(computer);
+      }
+    }
   }
 }
 

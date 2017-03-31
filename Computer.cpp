@@ -2,6 +2,7 @@
 #include "ClientNet.h"
 #include "Process.h"
 #include "Task.h"
+#include "Manager.h"
 
 Computer::Computer():processorMutex(),processMutex()
 {
@@ -182,6 +183,7 @@ shared_ptr<Process> Computer::suspendProcess()
 
 void Computer::killProcess(shared_ptr<Process> process)
 {
+  removeProcess(process);
   string cmd = "cmd=\"kill\":taskid=\"" + process->getTaskID() + "\":processid=\"" + process->getProcessID();
   cmd += "\":coreid=\"" + process->getProcessorIndex() + "\":bat=\"" + process->getRemoteBat() + "\"";
   //cmd="kill":taskid="taskID":processid="processID":coreid="ProcessorID":bat="RemoteScriptBat"
@@ -205,8 +207,6 @@ void Computer::killTask(shared_ptr<Task> task)
   }
 }
 
-
-
 void Computer::clearProcesses()
 {
   lock_guard<mutex> lck(processMutex);
@@ -221,7 +221,7 @@ decltype(Computer::doingProcesses) Computer::getDoingProcesses()
   return ret;
 }
 
-void Computer::finishProcess(string processID, string processorID)
+int Computer::finishProcess(string processID, string processorID)
 {
   shared_ptr<Process> process;
   for (auto p : doingProcesses)
@@ -266,11 +266,14 @@ void Computer::finishProcess(string processID, string processorID)
   {
     cout << "process " + processID + " is restarted." << endl;
   }
+  return 0;
 }
 
-void Computer::killedProcess(string processID, string processorID)
+int Computer::killedProcess(string processID, string processorID)
 {
+  int ret = 0;
   unique_lock<mutex> lck(processorMutex);
+  cout << "process " + processID + " at core " + processorID + " is killed." << endl;
   if (find(workingProcessor.begin(), workingProcessor.end(), processorID) != workingProcessor.end())
   {
     workingProcessor.remove(processorID);
@@ -282,9 +285,11 @@ void Computer::killedProcess(string processID, string processorID)
     {
       idleProcessor.push_back(processorID);
       cout << "processor " << processorID << " now idle." << endl;
+      if (idleProcessor.size() == 1)
+        ret = 1;
     }
   }
-  cout << "process " + processID + "at core " + processorID + " is killed." << endl;
+  return ret;
 }
 
 void Computer::removeIdleProcessor()
