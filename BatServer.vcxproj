@@ -153,6 +153,7 @@
     <ClInclude Include="Process.h" />
     <ClInclude Include="ServerNet.h" />
     <ClInclude Include="Task.h" />
+    <ClInclude Include="ThreadPool.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ClientNet.cpp" />

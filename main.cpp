@@ -47,6 +47,6 @@ void main(int argv, char* argc[])
     //localIP = "127.0.0.1";
   string localIP = "";
   mainServer.init(localIP.c_str(), port);
-  mainServer.setCallback(bind(&Manager::workerCallback, manager, placeholders::_1, placeholders::_2));
+  mainServer.setCallback(bind(&Manager::workerWorkDistribute, manager, placeholders::_1, placeholders::_2));
   mainServer.run();
 }

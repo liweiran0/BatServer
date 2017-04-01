@@ -6,7 +6,7 @@
 once_flag init_flag;
 Manager * Manager::instance = nullptr;
 
-Manager::Manager():queueMutex(),queueCv(),computerMutex(),computerCv(),taskMutex(),taskCv()
+Manager::Manager():queueMutex(),queueCv(),computerMutex(),computerCv(),taskMutex(),taskCv(),telnetThreadPool(3),workingThreadPool(10)
 {
   instance = nullptr;
 }
@@ -197,9 +197,16 @@ void Manager::telnetWork()
   //  localIP = "127.0.0.1";
   string localIP = "";
   server.init(localIP.c_str(), 20000);
-  server.setCallback(bind(&Manager::telnetCallback, this, placeholders::_1, placeholders::_2));
+  server.setCallback(bind(&Manager::telnetThreadSelect, this, placeholders::_1, placeholders::_2));
   server.run();
 }
+
+void Manager::telnetThreadSelect(string cmd, SOCKET sock)
+{
+  auto func = bind(&Manager::telnetCallback, this, cmd, sock);
+  telnetThreadPool.enqueue(func);
+}
+
 
 void Manager::telnetCallback(string cmd, SOCKET sock)
 {
@@ -348,6 +355,12 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   }
   if (ret != "")
     send(sock, ret.c_str(), ret.length(), 0);
+}
+
+void Manager::workerWorkDistribute(string cmd, SOCKET sock)
+{
+  auto func = bind(&Manager::workerCallback, this, cmd, sock);
+  workingThreadPool.enqueue(func);
 }
 
 void Manager::workerCallback(string cmd, SOCKET sock)

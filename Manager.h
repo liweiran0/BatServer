@@ -1,6 +1,7 @@
 #pragma once
 #include "Task.h"
 #include "CommonDef.h"
+#include "ThreadPool.h"
 
 class Computer;
 template<class T>
@@ -22,8 +23,7 @@ public:
   void startWork();
   void addNewTask(shared_ptr<Task>);
   void telnetWork();
-  void telnetCallback(string cmd, SOCKET sock);
-  void workerCallback(string cmd, SOCKET sock);
+  void workerWorkDistribute(string cmd, SOCKET sock);
   void registerComputer(string ip, int port, int cores);
   void selectComputerToCallback(string cmd, string ip, string taskID, string processID, string processorID);
 private:
@@ -39,6 +39,9 @@ private:
   void lazySetComputerAttr(string ip, int cores);
   shared_ptr<Computer> getComputerByIP(string ip);
   void parseCommand(string cmd, map<string, string>& param);
+  void telnetThreadSelect(string cmd, SOCKET sock);
+  void telnetCallback(string cmd, SOCKET sock);
+  void workerCallback(string cmd, SOCKET sock);
 
   static Manager* instance;
   list<shared_ptr<Process>> processQueue;
@@ -47,7 +50,6 @@ private:
   list<shared_ptr<Computer>> fullWorkingComputers;
   list<shared_ptr<Computer>> idleComputers;
   list<shared_ptr<Computer>> unregisteredComputers;
-  thread workThread;
   mutex queueMutex;
   condition_variable queueCv;
   mutex computerMutex;
@@ -55,6 +57,10 @@ private:
   mutex taskMutex;
   condition_variable taskCv;
   thread telnetThread;
+  thread workThread;
+  ThreadPool telnetThreadPool;
+  ThreadPool workingThreadPool;
+
   bool stopFlag = false;
   bool computerChangeFlag = false;
 };

@@ -2,6 +2,7 @@
 
 2017-4-1
 Fix bugs with dead-lock in killtask command.
+Using thread pool to do tasks.
 
 2017-3-31
 Change type of taskid, processid, processorid to string.
