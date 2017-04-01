@@ -35,7 +35,7 @@ public:
   void startOneTask(shared_ptr<Process> process);
   void doingThread(shared_ptr<Process> process);
   void addProcess(shared_ptr<Process> process);
-  void removeProcess(shared_ptr<Process> process);
+  int removeProcess(shared_ptr<Process> process);
   shared_ptr<Process> suspendProcess();
   void killProcess(shared_ptr<Process> process);
   void killTask(shared_ptr<Task> task);

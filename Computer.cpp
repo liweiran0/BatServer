@@ -164,10 +164,16 @@ void Computer::addProcess(shared_ptr<Process> process)
   doingProcesses.push_back(process);
 }
 
-void Computer::removeProcess(shared_ptr<Process> process)
+int Computer::removeProcess(shared_ptr<Process> process)
 {
+  int ret = 0;
   lock_guard<mutex> lck(processMutex);
-  doingProcesses.remove(process);
+  if (find(doingProcesses.begin(), doingProcesses.end(), process) != doingProcesses.end())
+  {
+    doingProcesses.remove(process);
+    ret = 1;
+  }
+  return ret;
 }
 
 shared_ptr<Process> Computer::suspendProcess()
@@ -183,14 +189,17 @@ shared_ptr<Process> Computer::suspendProcess()
 
 void Computer::killProcess(shared_ptr<Process> process)
 {
-  removeProcess(process);
-  string cmd = "cmd=\"kill\":taskid=\"" + process->getTaskID() + "\":processid=\"" + process->getProcessID();
-  cmd += "\":coreid=\"" + process->getProcessorIndex() + "\":bat=\"" + process->getRemoteBat() + "\"";
-  //cmd="kill":taskid="taskID":processid="processID":coreid="ProcessorID":bat="RemoteScriptBat"
-  ClientNet client;
-  client.Connect(ipAddr.c_str(), fixPort);
-  client.SendMsg(cmd);
-  client.Close();
+  if (removeProcess(process))
+  {
+    string cmd = "cmd=\"kill\":taskid=\"" + process->getTaskID() + "\":processid=\"" + process->getProcessID();
+    cmd += "\":coreid=\"" + process->getProcessorIndex() + "\":bat=\"" + process->getRemoteBat() + "\"";
+    //cmd="kill":taskid="taskID":processid="processID":coreid="ProcessorID":bat="RemoteScriptBat"
+    ClientNet client;
+    client.Connect(ipAddr.c_str(), fixPort);
+    client.SendMsg(cmd);
+    client.Close();
+    cout << "killed" << endl;
+  }
 }
 
 void Computer::killTask(shared_ptr<Task> task)

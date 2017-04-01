@@ -352,26 +352,28 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
 
 void Manager::workerCallback(string cmd, SOCKET sock)
 {
-  string ret;
+  string ret = "OK";
   map<string, string> param;
   parseCommand(cmd, param);
   if (param["cmd"] == "register")
   {
     //cmd="register":ip="IPAddr":port="port":corenum="CoreNumber"
     Manager::get_instance()->registerComputer(param["ip"], stoi(param["port"]), stoi(param["corenum"]));
-    ret = "OK";
   }
   else if (param["cmd"] == "finish")
   {
     //cmd="finish":ip="IPAddr":taskid="taskID":processid="processID":coreid="processorID"
     Manager::get_instance()->selectComputerToCallback("finish", param["ip"], param["taskid"], param["processid"], param["coreid"]);
-    ret = "OK";
   }
   else if (param["cmd"] == "killed")
   {
     //cmd="kill":ip="IPAddr":taskid="taskID":processid="processID":coreid="processorID"
     Manager::get_instance()->selectComputerToCallback("killed", param["ip"], param["taskid"], param["processid"], param["coreid"]);
-    ret = "OK";
+  }
+  else if (param["cmd"] == "failed")
+  {
+    //cmd="failed":ip="IPAddr":order="incoming cmd":taskid="taskID":processid="processID":coreid="processorID"
+    cout << "failed to " << param["order"] << " task:" << param["taskid"] << " process:" << param["processid"] << " on computer:" << param["ip"] << endl;
   }
   send(sock, ret.c_str(), ret.length(), 0);
 }
