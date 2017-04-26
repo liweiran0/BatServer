@@ -212,7 +212,9 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
 {
   cmd = cmd.substr(0, cmd.find_first_of("\r\n"));
   string ret("");
-  if (cmd == "info")
+  map<string, string> param;
+  parseCommand(cmd, param);
+  if (param["cmd"] == "info")
   {
     ret += "==========================================================\r\n";
     {
@@ -231,7 +233,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
       ret += "Unregistered computer number:" + to_string(unregisteredComputers.size()) + "\r\n";
     }
   }
-  else if (cmd == "task")
+  else if (param["cmd"] == "task")
   {
     ret += "==========================================================\r\n";
     {
@@ -261,7 +263,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
       }
     }
   }
-  else if (cmd == "process")
+  else if (param["cmd"] == "process")
   {
     ret += "==========================================================\r\n";
     {
@@ -274,7 +276,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
       }
     }
   }
-  else if (cmd == "computer")
+  else if (param["cmd"] == "computer")
   {
     ret += "==========================================================\r\n";
     {
@@ -302,59 +304,38 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
       }
     }
   }
-  else if (cmd.find("acctask") == 0)
+  else if (param["cmd"] == "acctask")
   {
-    stringstream ss(cmd);
-    string taskID = "";
-    string tmp;
-    ss >> tmp >> taskID;
-    accelerateTaskByID(taskID);
+    accelerateTaskByID(param["taskid"]);
   }
-  else if (cmd.find("killtask") == 0)
+  else if (param["cmd"] == "killtask")
   {
-    stringstream ss(cmd);
-    string taskID = "";
-    string tmp;
-    ss >> tmp >> taskID;
-    killTaskByID(taskID);
+    killTaskByID(param["taskid"]);
   }
-  else if (cmd.find("settask") == 0)
+  else if (param["cmd"] == "settask")
   {
-    stringstream ss(cmd);
-    string taskID = "";
-    int newCores = 0;
-    string tmp;
-    ss >> tmp >> taskID >> newCores;
-    setTaskAttr(taskID, newCores);
+    setTaskAttr(param["taskid"], stoi(param["process"]));
   }
-  else if (cmd.find("removecomputer") == 0)
+  else if (param["cmd"] == "removecomputer")
   {
-    stringstream ss(cmd);
-    string tmp;
-    string ip;
-    ss >> tmp >> ip;
-    removeComputer(ip);
+    removeComputer(param["ip"]);
   }
-  else if (cmd.find("setcomputer") == 0)
+  else if (param["cmd"] == "setcomputer")
   {
-    stringstream ss(cmd);
-    string tmp;
-    string ip;
-    int cores;
-    ss >> tmp >> ip >> cores;
-    setComputerAttr(ip, cores);
+    setComputerAttr(param["ip"], stoi(param["cores"]));
   }
-  else if (cmd.find("lazysetcomputer") == 0)
+  else if (param["cmd"] == "lazysetcomputer")
   {
-    stringstream ss(cmd);
-    string tmp;
-    string ip;
-    int cores;
-    ss >> tmp >> ip >> cores;
-    lazySetComputerAttr(ip, cores);
+    lazySetComputerAttr(param["ip"], stoi(param["cores"]));
+  }
+  else if (param["cmd"] == "addtask")
+  {
+    addTaskFromTelnet(param["taskname"], param["owner"], param["cores"], param["dir"], param["callback"]);
   }
   if (ret != "")
+  {
     send(sock, ret.c_str(), ret.length(), 0);
+  }
 }
 
 void Manager::workerWorkDistribute(string cmd, SOCKET sock)
@@ -740,6 +721,13 @@ void Manager::lazySetComputerAttr(string ip, int cores)
     }
   }
 }
+
+void Manager::addTaskFromTelnet(string taskName, string owner, string cores, string dir, string cb)
+{
+  //cmd="addtask":taskid="taskID":owner="owner":cores="coreNum":dir="direction":callback="callbackFile"
+
+}
+
 
 
 void Manager::selectComputerToCallback(std::string cmd, std::string ip, std::string taskID, std::string processID, std::string processorID)

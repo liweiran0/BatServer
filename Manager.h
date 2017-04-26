@@ -37,6 +37,7 @@ private:
   void removeComputer(string ip);
   void setComputerAttr(string ip, int cores);
   void lazySetComputerAttr(string ip, int cores);
+  void addTaskFromTelnet(string taskName, string owner, string cores, string dir, string cb);
   shared_ptr<Computer> getComputerByIP(string ip);
   void parseCommand(string cmd, map<string, string>& param);
   void telnetThreadSelect(string cmd, SOCKET sock);
