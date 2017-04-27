@@ -12,10 +12,11 @@ private:
   string processorNumber = "";  // processor number
   string remoteAddr;    // remote file address
   string remoteExe;     // remote bat file
+  string localDir;      // local directory
   weak_ptr<Task> task;  // task ptr
   function<void(shared_ptr<Process>)> callback;
 public:
-  Process(decltype(taskID) t_id, decltype(processID) p_id, shared_ptr<Task> task);
+  Process(decltype(taskID) t_id, shared_ptr<Task> task);
   ~Process();
   decltype(taskID) getTaskID()const;
   decltype(processID) getProcessID()const;
@@ -24,6 +25,7 @@ public:
   decltype(processorNumber) & getProcessorIndex();
   decltype(remoteAddr)& getRemoteAddr();
   decltype(remoteExe)& getRemoteBat();
+  decltype(localDir)& getLocalDir();
   void startProcess();
   auto getStartTime() const;
   auto getRunningTime();

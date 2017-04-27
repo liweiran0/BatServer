@@ -22,6 +22,10 @@ int& Computer::getFixPort()
   return fixPort;
 }
 
+string& Computer::getNetDir()
+{
+  return netDir;
+}
 
 int Computer::getProcessorNum() const
 {
@@ -129,28 +133,22 @@ void Computer::startOneTask(shared_ptr<Process> process)
 
 void Computer::doingThread(shared_ptr<Process> process)
 {
-  process->startProcess();
-  //random_device rd;
-  //mt19937 gen(rd());
-  //uniform_int_distribution<int> distribution(30, 40);
-  //int time = distribution(gen);
-  //this_thread::sleep_for(chrono::seconds(time));
-  ////cout << "process " << process->getProcessID() << " finished in " << time << " seconds." << endl;
-  //{
-  //  unique_lock<mutex> lck(processorMutex);
-  //  int processor = process->getProcessorIndex();
-  //  workingProcessor.remove(processor);
-  //  idleProcessor.push_back(processor);
-  //}
-  //process->doCallback();
-  process->getRemoteAddr() = "d:/alanlee/e2/";
-  process->getRemoteBat() = "\\\\10.8.0.132\\AlanLee\\bat.exe";
-  string cmd = "cmd=\"start\":taskid=\"";
+  //send file
   auto task = process->getTask();
   string taskName = "";
   if (task)
     taskName = task->getTaskName();
-  cmd += process->getTaskID() + "\":taskname=\"" + taskName + "\":processid=\"" + process->getProcessID() + "\":coreid=\"" + process->getProcessorIndex() + "\":bat=\"" + process->getRemoteBat() + "\":logdir=\"" + process->getRemoteAddr() + "\"";
+  string reletiveDir = task->getReletiveDir();
+  string sys_cmd = string("md ") + netDir + reletiveDir;
+  system(sys_cmd.c_str());
+  sys_cmd = string("xcopy /q /y /e /i ") + task->getWorkDir() + process->getLocalDir() + " " + netDir + reletiveDir + process->getLocalDir();
+  system(sys_cmd.c_str());
+  sys_cmd = string("xcopy /q /y /e /e ") + task->getWorkDir() + "programs\\ " + netDir + reletiveDir + process->getLocalDir();
+  system(sys_cmd.c_str());
+  process->startProcess();
+  string cmd = "cmd=\"start\":taskid=\"";
+  
+  cmd += process->getTaskID() + "\":taskname=\"" + taskName + "\":processid=\"" + process->getProcessID() + "\":coreid=\"" + process->getProcessorIndex() + "\":bat=\"" + process->getRemoteBat() + "\":logdir=\"" + reletiveDir + process->getRemoteAddr() + "\"";
   //cmd="start":taskid="TaskID":taskname="TaskName":processid="ProcessID":coreid="ProcessorID":bat="LocalScriptName":logdir="RemoteLogDir"
   ClientNet client;
   client.Connect(ipAddr.c_str(), fixPort);

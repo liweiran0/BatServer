@@ -8,6 +8,7 @@ class Computer
 private:
   string ipAddr = "";
   int fixPort = 0;
+  string netDir = "";
   int processorNum = 0;
   int actualProcessNum = 12;
   bool initFlag = false;
@@ -23,6 +24,7 @@ public:
   ~Computer();
   string &getIpAddr();
   int& getFixPort();
+  string &getNetDir();
   int getProcessorNum() const;
   void setProcessorNum(int num);
   int getActualProcessorNum() const;

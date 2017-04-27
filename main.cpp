@@ -23,9 +23,8 @@ void main(int argv, char* argc[])
   manager->startWork();
   for (int i = 0; i < 10;i ++)
   {
-    string task_id = to_string(i);
-    string task_name = "task_" + task_id;
-    shared_ptr<Task> task(new Task(task_id));
+    string task_name = "task_" + to_string(i);
+    shared_ptr<Task> task(new Task());
     task->getTaskOwner() = "alanlee";
     task->getTaskName() = task_name;
     task->getProcessNumbers() = 50;
@@ -34,8 +33,7 @@ void main(int argv, char* argc[])
       task->getTotalCores() = 40;
     for (int j = 0; j < task->getProcessNumbers(); j++)
     {
-      string processid = to_string(i * 100 + j);
-      shared_ptr<Process> process(new Process(task_id, processid, task));
+      shared_ptr<Process> process(new Process(task->getTaskID(), task));
       task->getProcesses().push_back(process);
     }
     manager->addNewTask(task);

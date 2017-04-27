@@ -1,9 +1,11 @@
 #include "Process.h"
 
-Process::Process(decltype(taskID) t_id, decltype(processID) p_id, shared_ptr<Task> t)
+static int usedProcessId = 0;
+
+Process::Process(decltype(taskID) t_id, shared_ptr<Task> t)
 {
   taskID = t_id;
-  processID = p_id;
+  processID = ++usedProcessId;
   task = t;
 }
 
@@ -46,6 +48,11 @@ auto Process::getRemoteAddr()->decltype(remoteAddr)&
 decltype(Process::remoteExe)& Process::getRemoteBat()
 {
   return remoteExe;
+}
+
+decltype(Process::localDir)& Process::getLocalDir()
+{
+  return localDir;
 }
 
 

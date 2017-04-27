@@ -250,16 +250,16 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
           ss << put_time(localtime(&time), "%F %T");
           string timeConvert = ss.str();
           ret += "  id:" + (*iter).getTaskID() + "  owner:" + (*iter).getTaskOwner() + "  name:" + (*iter).getTaskName() + "\r\n"
-            + "    finished time:" + timeConvert + "\r\n";
+            + "    finished time:" + timeConvert + "  dir:" + (*iter).getTaskPath() + "\r\n";
         }
       }
       if (processingTaskQueue.size() > 0)
-        ret += "TaskID\tTotal\tDone\tDoing\tTaskOwner\tTaskName\r\n";
+        ret += "TaskID\tTotal\tDone\tDoing\tTaskType\tTaskOwner\tTaskName\r\n";
       for (auto task : processingTaskQueue)
       {
         ret += task->getTaskID() + "\t" + to_string(task->getProcessNumbers()) + "\t"
           + to_string(task->getFinishedNumber()) + "\t" + to_string(task->getProcessingNumber()) + "\t"
-          + task->getTaskOwner() + "\t\t" + task->getTaskName() + "\r\n";
+          + task->getTaskType() + "\t" + task->getTaskOwner() + "\t\t" + task->getTaskName() + "\r\n";
       }
     }
   }
@@ -330,7 +330,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   }
   else if (param["cmd"] == "addtask")
   {
-    addTaskFromTelnet(param["taskname"], param["owner"], param["cores"], param["dir"], param["callback"]);
+    addTaskFromTelnet(param["taskname"], param["owner"], param["tasktype"], param["cores"], param["workdir"], param["reletivedir"], param["callback"]);
   }
   if (ret != "")
   {
@@ -351,8 +351,8 @@ void Manager::workerCallback(string cmd, SOCKET sock)
   parseCommand(cmd, param);
   if (param["cmd"] == "register")
   {
-    //cmd="register":ip="IPAddr":port="port":corenum="CoreNumber"
-    Manager::get_instance()->registerComputer(param["ip"], stoi(param["port"]), stoi(param["corenum"]));
+    //cmd="register":ip="IPAddr":port="port":corenum="CoreNumber":netdir="netDir"
+    Manager::get_instance()->registerComputer(param["ip"], stoi(param["port"]), stoi(param["corenum"]), param["netdir"]);
   }
   else if (param["cmd"] == "finish")
   {
@@ -464,7 +464,7 @@ void Manager::setTaskAttr(string id, int cores)
   }
 }
 
-void Manager::registerComputer(string ip, int port, int cores)
+void Manager::registerComputer(string ip, int port, int cores, string netDir)
 {
   shared_ptr<Computer> computer;
   unique_lock<mutex> lck(computerMutex);
@@ -485,6 +485,7 @@ void Manager::registerComputer(string ip, int port, int cores)
   }
   computer->getFixPort() = port;
   computer->setActualProcessorNum(cores);
+  computer->getNetDir() = netDir;
   computer->init();
   idleComputers.push_back(computer);
   computerCv.notify_one();
@@ -722,10 +723,45 @@ void Manager::lazySetComputerAttr(string ip, int cores)
   }
 }
 
-void Manager::addTaskFromTelnet(string taskName, string owner, string cores, string dir, string cb)
+void Manager::addTaskFromTelnet(string taskName, string owner, string type, string cores, string dir1, string dir2, string cb)
 {
-  //cmd="addtask":taskid="taskID":owner="owner":cores="coreNum":dir="direction":callback="callbackFile"
-
+  //cmd="addtask":taskid="taskID":tasktype="type":owner="owner":cores="coreNum":wordir="direction":reletivedir="direction2":callback="callbackFile"
+  shared_ptr<Task> task(new Task());
+  task->getTaskOwner() = owner;
+  task->getTaskName() = taskName;
+  task->getTotalCores() = stoi(cores);
+  task->getTaskType() = type;
+  task->getWorkDir() = dir1;
+  task->getReletiveDir() = dir2;
+  string script = dir1 + "script.txt";
+  FILE* fp = fopen(script.c_str(), "r");
+  int processNumber = 0;
+  
+  if (!fp)
+  {
+    return;
+  }
+  char buffer[1024];
+  while (!feof(fp))
+  {
+    fgets(buffer, 1023, fp);
+    string tmp(buffer);
+    stringstream ss(tmp);
+    string directory;
+    string batName;
+    ss >> directory >> batName;
+    ++processNumber;
+    shared_ptr<Process> process(new Process(task->getTaskID(), task));
+    process->getLocalDir() = directory;
+    process->getRemoteBat() = batName;
+    task->getProcesses().push_back(process);
+  }
+  task->setCallback([=]()
+  {
+    string filepath = dir + cb;
+    system(filepath.c_str());
+  });
+  addNewTask(task);
 }
 
 

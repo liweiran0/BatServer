@@ -1,8 +1,10 @@
 #include "Task.h"
 
-Task::Task(decltype(taskID) id)
+static int usedTaskId = 0;
+
+Task::Task()
 {
-  taskID = id;
+  taskID = ++usedTaskId;
 }
 
 Task::~Task()
@@ -20,12 +22,17 @@ string& Task::getTaskName()
   return taskName;
 }
 
-string& Task::getDescription()
+string& Task::getWorkDir()
 {
-  return description;
+  return workDir;
 }
 
-TaskType& Task::getTaskType()
+string& Task::getReletiveDir()
+{
+  return reletiveDir;
+}
+
+string& Task::getTaskType()
 {
   return taskType;
 }
@@ -86,7 +93,7 @@ void Task::doCallback()
 }
 
 
-TaskInfo::TaskInfo(decltype(taskID) id, string name, string owner, TaskType type):taskID(id),taskName(name),taskOwner(owner),taskType(type)
+TaskInfo::TaskInfo(decltype(taskID) id, string name, string owner, string type):taskID(id),taskName(name),taskOwner(owner),taskType(type)
 {
   finishedTime = chrono::system_clock::now();
 }
@@ -122,7 +129,7 @@ string TaskInfo::getTaskName() const
   return taskName;
 }
 
-TaskType TaskInfo::getTaskType() const
+string TaskInfo::getTaskType() const
 {
   return taskType;
 }
