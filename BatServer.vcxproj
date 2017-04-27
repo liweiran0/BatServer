@@ -166,6 +166,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
+    <None Include="run.bat" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="ChangeLog.txt" />
