@@ -758,7 +758,7 @@ void Manager::addTaskFromTelnet(string taskName, string owner, string type, stri
   }
   task->setCallback([=]()
   {
-    string filepath = dir + cb;
+    string filepath = dir1 + cb;
     system(filepath.c_str());
   });
   addNewTask(task);
