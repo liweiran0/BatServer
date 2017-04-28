@@ -1,1 +1,1 @@
-BatServer.exe 30000 computers.cfg
+BatServer.exe computers.cfg 30000

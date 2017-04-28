@@ -744,23 +744,31 @@ void Manager::addTaskFromTelnet(string taskName, string owner, string type, stri
   char buffer[1024];
   while (!feof(fp))
   {
+    memset(buffer, 0, sizeof(char) * 1024);
     fgets(buffer, 1023, fp);
     string tmp(buffer);
     stringstream ss(tmp);
     string directory;
     string batName;
     ss >> directory >> batName;
-    ++processNumber;
-    shared_ptr<Process> process(new Process(task->getTaskID(), task));
-    process->getLocalDir() = directory;
-    process->getRemoteBat() = batName;
-    task->getProcesses().push_back(process);
+    if (directory != "" && batName != "")
+    {
+      ++processNumber;
+      //cout << "new process dir=" << directory << " bat=" << batName << endl;
+      shared_ptr<Process> process(new Process(task->getTaskID(), task));
+      process->getLocalDir() = directory;
+      process->getRemoteBat() = batName;
+      task->getProcesses().push_back(process);
+    }
   }
+  fclose(fp);
+  task->getProcessNumbers() = task->getProcesses().size();
   task->setCallback([=]()
   {
     string filepath = dir1 + cb;
     system(filepath.c_str());
   });
+  cout << "new Task " << taskName << "@" << owner << " processes:" << processNumber << endl;
   addNewTask(task);
 }
 

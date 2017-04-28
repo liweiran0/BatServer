@@ -10,7 +10,6 @@ private:
   chrono::system_clock::time_point startTime; // process start time
   string ipAddr;        // ip address
   string processorNumber = "";  // processor number
-  string remoteAddr;    // remote file address
   string remoteExe;     // remote bat file
   string localDir;      // local directory
   weak_ptr<Task> task;  // task ptr
@@ -23,7 +22,6 @@ public:
   shared_ptr<Task> getTask()const;
   decltype(ipAddr)& getIpAddr();
   decltype(processorNumber) & getProcessorIndex();
-  decltype(remoteAddr)& getRemoteAddr();
   decltype(remoteExe)& getRemoteBat();
   decltype(localDir)& getLocalDir();
   void startProcess();

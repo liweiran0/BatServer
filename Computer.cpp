@@ -140,15 +140,23 @@ void Computer::doingThread(shared_ptr<Process> process)
     taskName = task->getTaskName();
   string reletiveDir = task->getReletiveDir();
   string sys_cmd = string("md ") + netDir + reletiveDir;
+  cout << sys_cmd << endl;
   system(sys_cmd.c_str());
-  sys_cmd = string("xcopy /q /y /e /i ") + task->getWorkDir() + process->getLocalDir() + " " + netDir + reletiveDir + process->getLocalDir();
+  string from_dir = task->getWorkDir() + process->getLocalDir();
+  if (from_dir[from_dir.length() - 1] == '\\')
+  {
+    from_dir = from_dir.substr(0, from_dir.length() - 1);
+  }
+  sys_cmd = string("xcopy /q /y /e /i ") + from_dir + " " + netDir + reletiveDir + process->getLocalDir();
+  cout << sys_cmd << endl;
   system(sys_cmd.c_str());
-  sys_cmd = string("xcopy /q /y /e /e ") + task->getWorkDir() + "programs\\ " + netDir + reletiveDir + process->getLocalDir();
+  sys_cmd = string("xcopy /q /y /e /i ") + task->getWorkDir() + "programs " + netDir + reletiveDir + process->getLocalDir();
+  cout << sys_cmd << endl;
   system(sys_cmd.c_str());
   process->startProcess();
   string cmd = "cmd=\"start\":taskid=\"";
   
-  cmd += process->getTaskID() + "\":taskname=\"" + taskName + "\":processid=\"" + process->getProcessID() + "\":coreid=\"" + process->getProcessorIndex() + "\":bat=\"" + process->getRemoteBat() + "\":logdir=\"" + reletiveDir + process->getRemoteAddr() + "\"";
+  cmd += process->getTaskID() + "\":taskname=\"" + taskName + "\":processid=\"" + process->getProcessID() + "\":coreid=\"" + process->getProcessorIndex() + "\":bat=\"" + process->getRemoteBat() + "\":logdir=\"" + reletiveDir + process->getLocalDir() + "\"";
   //cmd="start":taskid="TaskID":taskname="TaskName":processid="ProcessID":coreid="ProcessorID":bat="LocalScriptName":logdir="RemoteLogDir"
   ClientNet client;
   client.Connect(ipAddr.c_str(), fixPort);

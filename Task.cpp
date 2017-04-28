@@ -4,7 +4,7 @@ static int usedTaskId = 0;
 
 Task::Task()
 {
-  taskID = ++usedTaskId;
+  taskID = "task_" + to_string(++usedTaskId);
 }
 
 Task::~Task()

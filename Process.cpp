@@ -5,7 +5,7 @@ static int usedProcessId = 0;
 Process::Process(decltype(taskID) t_id, shared_ptr<Task> t)
 {
   taskID = t_id;
-  processID = ++usedProcessId;
+  processID = to_string(++usedProcessId);
   task = t;
 }
 
@@ -38,11 +38,6 @@ auto Process::getIpAddr() ->decltype(ipAddr)&
 auto Process::getProcessorIndex()->decltype(processorNumber)&
 {
   return processorNumber;
-}
-
-auto Process::getRemoteAddr()->decltype(remoteAddr)&
-{
-  return remoteAddr;
 }
 
 decltype(Process::remoteExe)& Process::getRemoteBat()
