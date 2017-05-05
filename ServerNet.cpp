@@ -303,30 +303,15 @@ short getUnusedPort(short start_port)
   sockaddr_in addr;
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = INADDR_ANY;
-  short port;
-  int flag = 0;
+  unsigned short port;
   sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   for (port = start_port; port < 65536; port++)
   {
     addr.sin_port = htons(port);
     if (::bind(sock, (struct sockaddr *)&addr, sizeof(struct sockaddr_in)) >= 0)
     {
-      flag = 0;
-      if ((port % 2) == 0)
-        port++;
-    }
-    else
-    {
-      if ((++flag) == 2)
-      {
-        closesocket(sock);
-        return port - 1;
-      }
-      else
-      {
-        closesocket(sock);
-        sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-      }
+      closesocket(sock);
+      return port;
     }
   }
   return 0;

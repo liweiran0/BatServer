@@ -280,7 +280,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   {
     ret += "==========================================================\r\n";
     {
-      ret += "ComputerIP\tCores\tInuse\tUnused\tIdle\tWorking\r\n";
+      ret += "ComputerIP\tPort\tCores\tInuse\tUnused\tIdle\tWorking\r\n";
       lock_guard<mutex> lck(computerMutex);
       list<shared_ptr<Computer>> computerList;
       for (auto computer: fullWorkingComputers)
@@ -289,7 +289,8 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
         computerList.push_back(computer);
       for (auto computer : computerList)
       {
-        ret += computer->getIpAddr() + "\t" + to_string(computer->getActualProcessorNum()) + "\t"
+        ret += computer->getIpAddr() + "\t" +to_string(computer->getFixPort()) + "\t" 
+          + to_string(computer->getActualProcessorNum()) + "\t"
           + to_string(computer->getProcessorNum()) + "\t" + to_string(computer->getUnusedNum()) + "\t"
           + to_string(computer->getIdleNum()) + "\t" + to_string(computer->getWorkingNum()) + "\r\n";
       }
@@ -334,6 +335,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   }
   if (ret != "")
   {
+    ret += "\0";
     send(sock, ret.c_str(), ret.length(), 0);
   }
 }
@@ -346,7 +348,7 @@ void Manager::workerWorkDistribute(string cmd, SOCKET sock)
 
 void Manager::workerCallback(string cmd, SOCKET sock)
 {
-  string ret = "OK";
+  string ret = "OK\0";
   map<string, string> param;
   parseCommand(cmd, param);
   if (param["cmd"] == "register")
