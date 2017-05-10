@@ -43,6 +43,7 @@ private:
   void telnetThreadSelect(string cmd, SOCKET sock);
   void telnetCallback(string cmd, SOCKET sock);
   void workerCallback(string cmd, SOCKET sock);
+  void reassignProcess(string tid, string pid);
 
   static Manager* instance;
   list<shared_ptr<Process>> processQueue;

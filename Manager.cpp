@@ -99,13 +99,19 @@ void Manager::working()
       }
       if (process)
       {
+        string taskID;
         {
           lock_guard<mutex> lckTask(taskMutex);
           auto task = process->getTask();
           task->getProcessingNumber()++;
+          taskID = task->getTaskID();
         }
         process->setCallback(bind(&Manager::processCallback, this, placeholders::_1));
-        computer->startOneTask(process);
+        string processID = process->getProcessID();
+        computer->startOneTask(process, [=]()
+        {
+          reassignProcess(taskID, processID);
+        });
         int idleProcessorNum = computer->getIdleNum();
         if (idleProcessorNum == 0)
         {
@@ -151,7 +157,7 @@ void Manager::processCallback(shared_ptr<Process> process)
     {
       task->doCallback();
       TaskInfo info(task->getTaskID(), task->getTaskName(), task->getTaskOwner(), task->getTaskType());
-      info.getTaskPath() = task->getFileAddress();
+      info.getTaskPath() = task->getWorkDir();
       finishedTasks.emplace_back(move(info));
       processingTaskQueue.erase(task);
     }
@@ -170,7 +176,6 @@ void Manager::processCallback(shared_ptr<Process> process)
     }
   }
 }
-
 
 void Manager::addNewTask(shared_ptr<Task> task)
 {
@@ -216,7 +221,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   parseCommand(cmd, param);
   if (param["cmd"] == "info")
   {
-    ret += "==========================================================\r\n";
+    ret += "\r\n==========================================================\r\n";
     {
       lock_guard<mutex> lck(taskMutex);
       ret += "Finished task number:" + to_string(finishedTasks.size()) + "\r\n";
@@ -235,7 +240,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   }
   else if (param["cmd"] == "task")
   {
-    ret += "==========================================================\r\n";
+    ret += "\r\n==========================================================\r\n";
     {
       lock_guard<mutex> lck(taskMutex);
       if (finishedTasks.size() > 0)
@@ -249,23 +254,23 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
           stringstream ss;
           ss << put_time(localtime(&time), "%F %T");
           string timeConvert = ss.str();
-          ret += "  id:" + (*iter).getTaskID() + "  owner:" + (*iter).getTaskOwner() + "  name:" + (*iter).getTaskName() + "\r\n"
-            + "    finished time:" + timeConvert + "  dir:" + (*iter).getTaskPath() + "\r\n";
+          ret += "  id:" + (*iter).getTaskID() + "  owner:" + (*iter).getTaskOwner() + "  finished time:" + timeConvert + "\r\n"
+            + "  name:" + (*iter).getTaskName() + "\r\n" + "  dir:" + (*iter).getTaskPath() + "\r\n";
         }
       }
       if (processingTaskQueue.size() > 0)
-        ret += "TaskID\tTotal\tDone\tDoing\tTaskType\tTaskOwner\tTaskName\r\n";
+        ret += "TaskID\tTotal\tDone\tDoing\tTaskType\tTaskOwner\r\n";
       for (auto task : processingTaskQueue)
       {
         ret += task->getTaskID() + "\t" + to_string(task->getProcessNumbers()) + "\t"
           + to_string(task->getFinishedNumber()) + "\t" + to_string(task->getProcessingNumber()) + "\t"
-          + task->getTaskType() + "\t" + task->getTaskOwner() + "\t\t" + task->getTaskName() + "\r\n";
+          + task->getTaskType() + "\t\t" + task->getTaskOwner() + "\r\n  TaskName:" + task->getTaskName() + "\r\n";
       }
     }
   }
   else if (param["cmd"] == "process")
   {
-    ret += "==========================================================\r\n";
+    ret += "\r\n==========================================================\r\n";
     {
       ret += "Total " + to_string(processQueue.size()) + " processes in queue." + "\r\n";
       lock_guard<mutex> lck(queueMutex);
@@ -278,7 +283,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   }
   else if (param["cmd"] == "computer")
   {
-    ret += "==========================================================\r\n";
+    ret += "\r\n==========================================================\r\n";
     {
       ret += "ComputerIP\tPort\tCores\tInuse\tUnused\tIdle\tWorking\r\n";
       lock_guard<mutex> lck(computerMutex);
@@ -370,6 +375,10 @@ void Manager::workerCallback(string cmd, SOCKET sock)
   {
     //cmd="failed":ip="IPAddr":order="incoming cmd":taskid="taskID":processid="processID":coreid="processorID"
     cout << "failed to " << param["order"] << " task:" << param["taskid"] << " process:" << param["processid"] << " on computer:" << param["ip"] << endl;
+    if (param["order"] == "start")
+    {
+      reassignProcess(param["taskid"], param["processid"]);
+    }
   }
   send(sock, ret.c_str(), ret.length(), 0);
 }
@@ -774,9 +783,7 @@ void Manager::addTaskFromTelnet(string taskName, string owner, string type, stri
   addNewTask(task);
 }
 
-
-
-void Manager::selectComputerToCallback(std::string cmd, std::string ip, std::string taskID, std::string processID, std::string processorID)
+void Manager::selectComputerToCallback(string cmd, string ip, string taskID, string processID, string processorID)
 {
   shared_ptr<Computer> computer;
   {
@@ -867,5 +874,39 @@ void Manager::parseCommand(string cmd, map<string, string>& param)
     {
       break;
     }
+  }
+}
+
+void Manager::reassignProcess(string tid, string pid)
+{
+  shared_ptr<Task> tmpTask;
+  {
+    lock_guard<mutex> lck(taskMutex);
+    for (auto task : processingTaskQueue)
+    {
+      if (task->getTaskID() == tid)
+      {
+        tmpTask = task;
+        break;
+      }
+    }
+  }
+  shared_ptr<Process> tmpProcess;
+  if (tmpTask)
+  {
+    for (auto process : tmpTask->getProcesses())
+    {
+      if (process->getProcessID() == pid)
+      {
+        tmpProcess = process;
+        break;
+      }
+    }
+  }
+  if (tmpProcess)
+  {
+    unique_lock<mutex> lck(queueMutex);
+    processQueue.push_front(tmpProcess);
+    cout << "reassign process " << pid << " of Task " << tid << endl;
   }
 }

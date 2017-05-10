@@ -42,11 +42,6 @@ int& Task::getTotalCores()
   return totalCores;
 }
 
-string& Task::getFileAddress()
-{
-  return fileAddress;
-}
-
 auto Task::getTaskID() const->decltype(taskID)
 {
   return taskID;

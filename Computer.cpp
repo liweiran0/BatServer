@@ -2,7 +2,8 @@
 #include "ClientNet.h"
 #include "Process.h"
 #include "Task.h"
-#include "Manager.h"
+
+void getFiles(string path, vector<string>& files);
 
 Computer::Computer():processorMutex(),processMutex()
 {
@@ -115,7 +116,7 @@ void Computer::reset()
 }
 
 
-void Computer::startOneTask(shared_ptr<Process> process)
+void Computer::startOneTask(shared_ptr<Process> process, function<void()> cb)
 {
   //copy
   //start
@@ -127,11 +128,11 @@ void Computer::startOneTask(shared_ptr<Process> process)
   process->getIpAddr() = ipAddr;
   process->getProcessorIndex() = processor;
   //cout << "start process " << process->getProcessID() << " on computer " << ipAddr << " processor " << processor <<endl;
-  workingThread[processor] = thread(&Computer::doingThread, this, process);
+  workingThread[processor] = thread(&Computer::doingThread, this, process, cb);
   workingThread[processor].detach();
 }
 
-void Computer::doingThread(shared_ptr<Process> process)
+void Computer::doingThread(shared_ptr<Process> process, function<void()> cb)
 {
   //send file
   auto task = process->getTask();
@@ -140,18 +141,43 @@ void Computer::doingThread(shared_ptr<Process> process)
     taskName = task->getTaskName();
   string reletiveDir = task->getReletiveDir();
   string sys_cmd = string("md ") + netDir + reletiveDir;
-  cout << sys_cmd << endl;
+  //cout << sys_cmd << endl;
   system(sys_cmd.c_str());
   string from_dir = task->getWorkDir() + process->getLocalDir();
   if (from_dir[from_dir.length() - 1] == '\\')
   {
     from_dir = from_dir.substr(0, from_dir.length() - 1);
   }
+  vector<string> files;
+  getFiles(from_dir, files);
+  getFiles(task->getWorkDir() + "programs", files);
+  //generate filelist.txt
+  string fileName = from_dir + "\\filelist.txt";
+  FILE* fpFileList = fopen(fileName.c_str(), "w");
+  if (!fpFileList)
+  {
+    string processor = process->getProcessorIndex();
+    workingProcessor.remove(processor);
+    idleProcessor.push_back(processor);
+    removeProcess(process);
+    process->getIpAddr() = "";
+    process->getProcessorIndex() = "";
+    cb();
+    return;
+  }
+  else
+  {
+    for (auto file : files)
+    {
+      fprintf(fpFileList, "%s\n", file.c_str());
+    }
+    fclose(fpFileList);
+  }
   sys_cmd = string("xcopy /q /y /e /i ") + from_dir + " " + netDir + reletiveDir + process->getLocalDir();
-  cout << sys_cmd << endl;
+  //cout << sys_cmd << endl;
   system(sys_cmd.c_str());
   sys_cmd = string("xcopy /q /y /e /i ") + task->getWorkDir() + "programs " + netDir + reletiveDir + process->getLocalDir();
-  cout << sys_cmd << endl;
+  //cout << sys_cmd << endl;
   system(sys_cmd.c_str());
   process->startProcess();
   string cmd = "cmd=\"start\":taskid=\"";
@@ -349,5 +375,32 @@ void Computer::addProcessor()
     auto processor = unUseProcessor.front();
     unUseProcessor.pop_front();
     idleProcessor.push_back(processor);
+  }
+}
+
+void getFiles(string path, vector<string>& files)
+{
+  //文件句柄  
+  long   hFile;
+  //文件信息  
+  struct _finddata_t fileinfo;
+  string p;
+  if ((hFile = _findfirst(p.assign(path).append("\\*").c_str(), &fileinfo)) != -1)
+  {
+    do
+    {
+      //如果是目录,迭代之  
+      //如果不是,加入列表  
+      if ((fileinfo.attrib &  _A_SUBDIR))
+      {
+        if (strcmp(fileinfo.name, ".") != 0 && strcmp(fileinfo.name, "..") != 0)
+          getFiles(p.assign(path).append("\\").append(fileinfo.name), files);
+      }
+      else
+      {
+        files.push_back(fileinfo.name);
+      }
+    } while (_findnext(hFile, &fileinfo) == 0);
+    _findclose(hFile);
   }
 }

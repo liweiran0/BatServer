@@ -32,7 +32,6 @@ public:
   string& getReletiveDir();
   string& getTaskType();
   int &getTotalCores();
-  string& getFileAddress();
   decltype(taskID) getTaskID()const;
   int &getProcessNumbers();
   int &getFinishedNumber();

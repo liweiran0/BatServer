@@ -25,7 +25,6 @@ int ClientNet::Connect(const char* address, int port)
   unsigned short sPort = port;
   sockaddrServer.sin_port = htons(sPort);
   inet_pton(AF_INET, address, &sockaddrServer.sin_addr.s_addr);
-  cout << "connect " << address << ":" << sPort << endl;
 //  sockaddrServer.sin_addr.s_addr = inet_addr(address);
   iErrMsg = connect(m_sock, (sockaddr*) &sockaddrServer, sizeof(sockaddrServer));
   if (iErrMsg < 0)
