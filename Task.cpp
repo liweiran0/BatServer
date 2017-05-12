@@ -37,6 +37,11 @@ string& Task::getTaskType()
   return taskType;
 }
 
+string& Task::getLogName()
+{
+  return logName;
+}
+
 int& Task::getTotalCores()
 {
   return totalCores;

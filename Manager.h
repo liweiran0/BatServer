@@ -37,7 +37,7 @@ private:
   void removeComputer(string ip);
   void setComputerAttr(string ip, int cores);
   void lazySetComputerAttr(string ip, int cores);
-  void addTaskFromTelnet(string taskName, string owner, string type, string cores, string dir1, string dir2, string cb);
+  void addTaskFromTelnet(string taskName, string owner, string type, string logName, string cores, string dir1, string dir2, string cb);
   shared_ptr<Computer> getComputerByIP(string ip);
   void parseCommand(string cmd, map<string, string>& param);
   void telnetThreadSelect(string cmd, SOCKET sock);
@@ -52,12 +52,15 @@ private:
   list<shared_ptr<Computer>> fullWorkingComputers;
   list<shared_ptr<Computer>> idleComputers;
   list<shared_ptr<Computer>> unregisteredComputers;
+  map<string, int> logNameCores;
+  map<string, int> logNameUsingCores;
   mutex queueMutex;
   condition_variable queueCv;
   mutex computerMutex;
   condition_variable computerCv;
   mutex taskMutex;
   condition_variable taskCv;
+  mutex logMutex;
   thread telnetThread;
   thread workThread;
   ThreadPool telnetThreadPool;

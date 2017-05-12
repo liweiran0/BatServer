@@ -6,7 +6,7 @@
 once_flag init_flag;
 Manager * Manager::instance = nullptr;
 
-Manager::Manager():queueMutex(),queueCv(),computerMutex(),computerCv(),taskMutex(),taskCv(),telnetThreadPool(3),workingThreadPool(10)
+Manager::Manager():queueMutex(),queueCv(),computerMutex(),computerCv(),taskMutex(),taskCv(),logMutex(), telnetThreadPool(3),workingThreadPool(10)
 {
   instance = nullptr;
 }
@@ -88,8 +88,19 @@ void Manager::working()
         lock_guard<mutex> lckTask(taskMutex);
         if (task && task->getProcessingNumber() < task->getTotalCores())
         {
-          processQueue.erase(iter);
-          break;
+          lock_guard<mutex> lckLog(logMutex);
+          string logName = task->getLogName();
+          if (logNameCores.count(logName) > 0)
+          {
+            if (logNameUsingCores.count(logName) == 0)
+              logNameUsingCores[logName] = 0;
+            if (logNameUsingCores[logName] < logNameCores[logName])
+            {
+              processQueue.erase(iter);
+              logNameUsingCores[logName]++;
+              break;
+            }
+          }
         }
         else
         {
@@ -162,6 +173,13 @@ void Manager::processCallback(shared_ptr<Process> process)
       processingTaskQueue.erase(task);
     }
     taskCv.notify_one();
+    {
+      lock_guard<mutex> lckLog(logMutex);
+      if (logNameUsingCores.count(task->getLogName()) > 0 && logNameUsingCores[task->getLogName()] > 0)
+      {
+        logNameUsingCores[task->getLogName()]--;
+      }
+    }
   }
   string ipAddr = process->getIpAddr();
   unique_lock<mutex> lck(computerMutex);
@@ -336,7 +354,7 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
   }
   else if (param["cmd"] == "addtask")
   {
-    addTaskFromTelnet(param["taskname"], param["owner"], param["tasktype"], param["cores"], param["workdir"], param["reletivedir"], param["callback"]);
+    addTaskFromTelnet(param["taskname"], param["owner"], param["tasktype"], param["logname"], param["cores"], param["workdir"], param["reletivedir"], param["callback"]);
   }
   if (ret != "")
   {
@@ -449,14 +467,23 @@ void Manager::killTaskByID(string id)
     }
     //kill the processes that have already been started
     {
-      lock_guard<mutex> lck(computerMutex);
-      for (auto computer : idleComputers)
+      int killedNumber = 0;
       {
-        computer->killTask(taskToBeKilled);
+        lock_guard<mutex> lck(computerMutex);
+        for (auto computer : idleComputers)
+        {
+          killedNumber += computer->killTask(taskToBeKilled);
+        }
+        for (auto computer : fullWorkingComputers)
+        {
+          killedNumber += computer->killTask(taskToBeKilled);
+        }
       }
-      for (auto computer: fullWorkingComputers)
       {
-        computer->killTask(taskToBeKilled);
+        lock_guard<mutex> lck(logMutex);
+        logNameUsingCores[taskToBeKilled->getLogName()] -= killedNumber;
+        if (logNameUsingCores[taskToBeKilled->getLogName()] < 0)
+          logNameUsingCores[taskToBeKilled->getLogName()] = 0;
       }
     }
   }
@@ -591,10 +618,15 @@ void Manager::setComputerAttr(string ip, int cores)
             computer->removeWorkingProcessor(process->getProcessorIndex());
             process->reset();
             processes.push_back(process);
+            
             lock_guard<mutex> lckTask(taskMutex);
             shared_ptr<Task> task = process->getTask();
             if (task)
               task->getProcessingNumber()--;
+            {
+              lock_guard<mutex> lckLog(logMutex);
+              logNameUsingCores[task->getLogName()]--;
+            }
           }
           int idleNum = computer->getIdleNum();
           for (auto i = 0; i < idleNum; i++)
@@ -645,6 +677,10 @@ void Manager::setComputerAttr(string ip, int cores)
             shared_ptr<Task> task = process->getTask();
             if (task)
               task->getProcessingNumber()--;
+            {
+              lock_guard<mutex> lckLog(logMutex);
+              logNameUsingCores[task->getLogName()]--;
+            }
           }
           unique_lock<mutex> lckQueue(queueMutex);
           processQueue.splice(processQueue.begin(), processes);
@@ -734,9 +770,9 @@ void Manager::lazySetComputerAttr(string ip, int cores)
   }
 }
 
-void Manager::addTaskFromTelnet(string taskName, string owner, string type, string cores, string dir1, string dir2, string cb)
+void Manager::addTaskFromTelnet(string taskName, string owner, string type, string logName, string cores, string dir1, string dir2, string cb)
 {
-  //cmd="addtask":taskid="taskID":tasktype="type":owner="owner":cores="coreNum":wordir="direction":reletivedir="direction2":callback="callbackFile"
+  //cmd="addtask":taskid="taskID":tasktype="type":owner="owner":logname="logName":cores="coreNum":wordir="direction":reletivedir="direction2":callback="callbackFile"
   shared_ptr<Task> task(new Task());
   task->getTaskOwner() = owner;
   task->getTaskName() = taskName;
@@ -744,6 +780,7 @@ void Manager::addTaskFromTelnet(string taskName, string owner, string type, stri
   task->getTaskType() = type;
   task->getWorkDir() = dir1;
   task->getReletiveDir() = dir2;
+  task->getLogName() = logName;
   string script = dir1 + "script.txt";
   FILE* fp = fopen(script.c_str(), "r");
   int processNumber = 0;
@@ -779,6 +816,14 @@ void Manager::addTaskFromTelnet(string taskName, string owner, string type, stri
     string filepath = dir1 + cb;
     system(filepath.c_str());
   });
+  {
+    lock_guard<mutex> lck(logMutex);
+    if (logNameCores.count(logName) == 0)
+    {
+      logNameCores[logName] = stoi(cores);
+    }
+  }
+  
   cout << "new Task " << taskName << "@" << owner << " processes:" << processNumber << endl;
   addNewTask(task);
 }

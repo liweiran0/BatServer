@@ -12,6 +12,7 @@ private:
   string workDir = "";   //
   string reletiveDir = ""; //
   string taskType = "";    //
+  string logName = "";     // use log name to control cores
   int totalCores = INT_MAX;  // max cores to do the task
 
   string fileAddress = "";   // where to store the files and results
@@ -31,6 +32,7 @@ public:
   string& getWorkDir();
   string& getReletiveDir();
   string& getTaskType();
+  string& getLogName();
   int &getTotalCores();
   decltype(taskID) getTaskID()const;
   int &getProcessNumbers();

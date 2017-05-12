@@ -40,7 +40,7 @@ public:
   int removeProcess(shared_ptr<Process> process);
   shared_ptr<Process> suspendProcess();
   void killProcess(shared_ptr<Process> process);
-  void killTask(shared_ptr<Task> task);
+  int killTask(shared_ptr<Task> task);
   void clearProcesses();
   list<shared_ptr<Process>> getDoingProcesses();
   int finishProcess(string processID, string processorID);

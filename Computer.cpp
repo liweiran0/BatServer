@@ -216,6 +216,13 @@ shared_ptr<Process> Computer::suspendProcess()
     process = doingProcesses.front();
     doingProcesses.pop_front();
   }
+  string cmd = "cmd=\"kill\":taskid=\"" + process->getTaskID() + "\":processid=\"" + process->getProcessID();
+  cmd += "\":coreid=\"" + process->getProcessorIndex() + "\":bat=\"" + process->getRemoteBat() + "\"";
+  //cmd="kill":taskid="taskID":processid="processID":coreid="ProcessorID":bat="RemoteScriptBat"
+  ClientNet client;
+  client.Connect(ipAddr.c_str(), fixPort);
+  client.SendMsg(cmd);
+  client.Close();
   return process;
 }
 
@@ -230,12 +237,13 @@ void Computer::killProcess(shared_ptr<Process> process)
     client.Connect(ipAddr.c_str(), fixPort);
     client.SendMsg(cmd);
     client.Close();
-    cout << "killed" << endl;
+    //cout << "killed" << endl;
   }
 }
 
-void Computer::killTask(shared_ptr<Task> task)
+int Computer::killTask(shared_ptr<Task> task)
 {
+  int ret = 0;
   if (task)
   {
     for (auto process : task->getProcesses())
@@ -243,9 +251,11 @@ void Computer::killTask(shared_ptr<Task> task)
       if (process->getIpAddr() == ipAddr)
       {
         killProcess(process);
+        ret++;
       }
     }
   }
+  return ret;
 }
 
 void Computer::clearProcesses()
@@ -271,7 +281,7 @@ int Computer::finishProcess(string processID, string processorID)
     {
       if (p->getProcessorIndex() == processorID)
       {
-        cout << "process " << processID << " finished." << endl;
+        cout << "process " << processID << "of task:" << p->getTaskID() << " finished." << endl;
         process = p;
         break;
       }
@@ -285,11 +295,11 @@ int Computer::finishProcess(string processID, string processorID)
       {
         workingProcessor.remove(processorID);
         idleProcessor.push_back(processorID);
-        cout << "processor " << processorID << " now idle." << endl;
+        //cout << "processor " << processorID << " now idle." << endl;
       }
       else
       {
-        cout << "processor " << processorID << " is lazily shutdown." << endl;
+        //cout << "processor " << processorID << " is lazily shutdown." << endl;
         if (actualProcessNum - processorNum <= unUseProcessor.size())
         {
           //here when lazyset again
