@@ -96,17 +96,16 @@ void Manager::working()
               logNameUsingCores[logName] = 0;
             if (logNameUsingCores[logName] < logNameCores[logName])
             {
+              //cout << logName << " using " << logNameUsingCores[logName]+1 << ", total " << logNameCores[logName] << "." << endl;
+              //cout << "process id:" << process->getProcessID() << ", task:" << task->getTaskID() << endl;
               processQueue.erase(iter);
               logNameUsingCores[logName]++;
               break;
             }
           }
         }
-        else
-        {
-          ++iter;
-          process.reset();
-        }
+        ++iter;
+        process.reset();
       }
       if (process)
       {
@@ -773,6 +772,13 @@ void Manager::lazySetComputerAttr(string ip, int cores)
 void Manager::addTaskFromTelnet(string taskName, string owner, string type, string logName, string cores, string dir1, string dir2, string cb)
 {
   //cmd="addtask":taskid="taskID":tasktype="type":owner="owner":logname="logName":cores="coreNum":wordir="direction":reletivedir="direction2":callback="callbackFile"
+  {
+    lock_guard<mutex> lck(logMutex);
+    if (logNameCores.count(logName) == 0)
+    {
+      logNameCores[logName] = stoi(cores);
+    }
+  }
   shared_ptr<Task> task(new Task());
   task->getTaskOwner() = owner;
   task->getTaskName() = taskName;
@@ -816,13 +822,7 @@ void Manager::addTaskFromTelnet(string taskName, string owner, string type, stri
     string filepath = dir1 + cb;
     system(filepath.c_str());
   });
-  {
-    lock_guard<mutex> lck(logMutex);
-    if (logNameCores.count(logName) == 0)
-    {
-      logNameCores[logName] = stoi(cores);
-    }
-  }
+  
   
   cout << "new Task " << taskName << "@" << owner << " processes:" << processNumber << endl;
   addNewTask(task);

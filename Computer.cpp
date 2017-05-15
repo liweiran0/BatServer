@@ -184,6 +184,7 @@ void Computer::doingThread(shared_ptr<Process> process, function<void()> cb)
   
   cmd += process->getTaskID() + "\":taskname=\"" + taskName + "\":processid=\"" + process->getProcessID() + "\":coreid=\"" + process->getProcessorIndex() + "\":bat=\"" + process->getRemoteBat() + "\":logdir=\"" + reletiveDir + process->getLocalDir() + "\"";
   //cmd="start":taskid="TaskID":taskname="TaskName":processid="ProcessID":coreid="ProcessorID":bat="LocalScriptName":logdir="RemoteLogDir"
+  //cout << cmd << endl;
   ClientNet client;
   client.Connect(ipAddr.c_str(), fixPort);
   client.SendMsg(cmd);
@@ -281,7 +282,7 @@ int Computer::finishProcess(string processID, string processorID)
     {
       if (p->getProcessorIndex() == processorID)
       {
-        cout << "process " << processID << "of task:" << p->getTaskID() << " finished." << endl;
+        cout << "process " << processID << " of task:" << p->getTaskID() << " finished." << endl;
         process = p;
         break;
       }
@@ -335,7 +336,7 @@ int Computer::killedProcess(string processID, string processorID)
     else
     {
       idleProcessor.push_back(processorID);
-      cout << "processor " << processorID << " now idle." << endl;
+      //cout << "processor " << processorID << "of computer "<< ipAddr<< " now idle." << endl;
       if (idleProcessor.size() == 1)
         ret = 1;
     }
