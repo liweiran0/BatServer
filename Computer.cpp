@@ -321,6 +321,45 @@ int Computer::finishProcess(string processID, string processorID)
   return 0;
 }
 
+int Computer::failedProcess(string processID, string processorID)
+{
+  shared_ptr<Process> process;
+  for (auto p : doingProcesses)
+  {
+    if (processID == p->getProcessID())
+    {
+      if (p->getProcessorIndex() == processorID)
+      {
+        process = p;
+        break;
+      }
+    }
+  }
+  if (process)
+  {
+    {
+      unique_lock<mutex> lck(processorMutex);
+      if (find(workingProcessor.begin(), workingProcessor.end(), processorID) != workingProcessor.end())
+      {
+        workingProcessor.remove(processorID);
+        idleProcessor.push_back(processorID);
+      }
+      else
+      {
+        if (actualProcessNum - processorNum <= unUseProcessor.size())
+        {
+          idleProcessor.push_back(processorID);
+        }
+        else
+        {
+          unUseProcessor.push_back(processorID);
+        }
+      }
+    }
+  }
+  return 0;
+}
+
 int Computer::killedProcess(string processID, string processorID)
 {
   int ret = 0;

@@ -305,18 +305,26 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
       ret += "ComputerIP\tPort\tCores\tInuse\tUnused\tIdle\tWorking\r\n";
       lock_guard<mutex> lck(computerMutex);
       list<shared_ptr<Computer>> computerList;
-      for (auto computer: fullWorkingComputers)
+      for (auto computer : fullWorkingComputers)
         computerList.push_back(computer);
       for (auto computer : idleComputers)
         computerList.push_back(computer);
+      int cores = 0, inuse = 0, unused = 0, idle = 0, working = 0, count = 0;
       for (auto computer : computerList)
       {
-        ret += computer->getIpAddr() + "\t" +to_string(computer->getFixPort()) + "\t" 
+        ret += computer->getIpAddr() + "\t" + to_string(computer->getFixPort()) + "\t"
           + to_string(computer->getActualProcessorNum()) + "\t"
           + to_string(computer->getProcessorNum()) + "\t" + to_string(computer->getUnusedNum()) + "\t"
           + to_string(computer->getIdleNum()) + "\t" + to_string(computer->getWorkingNum()) + "\r\n";
+        cores += computer->getActualProcessorNum();
+        inuse += computer->getProcessorNum();
+        unused += computer->getUnusedNum();
+        idle += computer->getIdleNum();
+        working += computer->getWorkingNum();
+        count++;
       }
-
+      ret += string("Total:\t\t") + to_string(count) + "\t" + to_string(cores) + "\t" + to_string(inuse) + "\t"
+        + to_string(unused) + "\t" + to_string(idle) + "\t" + to_string(working) + "\r\n";
       if (unregisteredComputers.size() > 0)
       {
         ret += "Unregistered computers\r\n";
@@ -376,17 +384,17 @@ void Manager::workerCallback(string cmd, SOCKET sock)
   if (param["cmd"] == "register")
   {
     //cmd="register":ip="IPAddr":port="port":corenum="CoreNumber":netdir="netDir"
-    Manager::get_instance()->registerComputer(param["ip"], stoi(param["port"]), stoi(param["corenum"]), param["netdir"]);
+    registerComputer(param["ip"], stoi(param["port"]), stoi(param["corenum"]), param["netdir"]);
   }
   else if (param["cmd"] == "finish")
   {
     //cmd="finish":ip="IPAddr":taskid="taskID":processid="processID":coreid="processorID"
-    Manager::get_instance()->selectComputerToCallback("finish", param["ip"], param["taskid"], param["processid"], param["coreid"]);
+    selectComputerToCallback("finish", param["ip"], param["taskid"], param["processid"], param["coreid"]);
   }
   else if (param["cmd"] == "killed")
   {
     //cmd="kill":ip="IPAddr":taskid="taskID":processid="processID":coreid="processorID"
-    Manager::get_instance()->selectComputerToCallback("killed", param["ip"], param["taskid"], param["processid"], param["coreid"]);
+    selectComputerToCallback("killed", param["ip"], param["taskid"], param["processid"], param["coreid"]);
   }
   else if (param["cmd"] == "failed")
   {
@@ -395,6 +403,7 @@ void Manager::workerCallback(string cmd, SOCKET sock)
     if (param["order"] == "start")
     {
       reassignProcess(param["taskid"], param["processid"]);
+      selectComputerToCallback("failed", param["ip"], param["taskid"], param["processid"], param["coreid"]);
     }
   }
   send(sock, ret.c_str(), ret.length(), 0);
@@ -858,6 +867,8 @@ void Manager::selectComputerToCallback(string cmd, string ip, string taskID, str
     int ret;
     if (cmd == "finish")
       ret = computer->finishProcess(processID, processorID);
+    if (cmd == "failed")
+      ret = computer->failedProcess(processID, processorID);
     if (cmd == "killed")
     {
       ret = computer->killedProcess(processID, processorID);

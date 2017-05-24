@@ -45,6 +45,7 @@ public:
   list<shared_ptr<Process>> getDoingProcesses();
   int finishProcess(string processID, string processorID);
   int killedProcess(string processID, string processorID);
+  int failedProcess(string processID, string processorID);
   void removeIdleProcessor();
   void removeWorkingProcessor(string processorId);
   void lazyRemoveProcessor(int num);
