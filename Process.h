@@ -14,6 +14,7 @@ private:
   string localDir;      // local directory
   weak_ptr<Task> task;  // task ptr
   function<void(shared_ptr<Process>)> callback;
+  function<void(shared_ptr<Process>)> callback2;
 public:
   Process(decltype(taskID) t_id, shared_ptr<Task> task);
   ~Process();
@@ -27,7 +28,8 @@ public:
   void startProcess();
   auto getStartTime() const;
   auto getRunningTime();
-  void setCallback(decltype(callback) cb);
+  void setCallback(decltype(callback) cb, decltype(callback2) cb2);
   void doCallback();
+  void doCallback2();
   void reset();
 };

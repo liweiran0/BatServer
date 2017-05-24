@@ -67,15 +67,22 @@ auto Process::getRunningTime()
   return chrono::duration_cast<chrono::seconds>(chrono::system_clock::now() - startTime);
 }
 
-void Process::setCallback(decltype(callback) cb)
+void Process::setCallback(decltype(callback) cb, decltype(callback2) cb2)
 {
   callback = cb;
+  callback2 = cb2;
 }
 
 void Process::doCallback()
 {
   if (callback)
     callback(shared_from_this());
+}
+
+void Process::doCallback2()
+{
+  if (callback2)
+    callback2(shared_from_this());
 }
 
 void Process::reset()

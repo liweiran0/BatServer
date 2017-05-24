@@ -127,7 +127,7 @@ void Computer::startOneTask(shared_ptr<Process> process, function<void()> cb)
   addProcess(process);
   process->getIpAddr() = ipAddr;
   process->getProcessorIndex() = processor;
-  //cout << "start process " << process->getProcessID() << " on computer " << ipAddr << " processor " << processor <<endl;
+  cout << "start process " << process->getProcessID() << " on computer " << ipAddr << " processor " << processor <<endl;
   workingThread[processor] = thread(&Computer::doingThread, this, process, cb);
   workingThread[processor].detach();
 }
@@ -356,6 +356,7 @@ int Computer::failedProcess(string processID, string processorID)
         }
       }
     }
+    process->doCallback2();
   }
   return 0;
 }

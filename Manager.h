@@ -20,6 +20,7 @@ public:
   static Manager* get_instance(); 
   void initComputers(string fileName);
   void processCallback(shared_ptr<Process> process);
+  void processCallbackFailed(shared_ptr<Process> process);
   void startWork();
   void addNewTask(shared_ptr<Task>);
   void telnetWork();

@@ -116,7 +116,7 @@ void Manager::working()
           task->getProcessingNumber()++;
           taskID = task->getTaskID();
         }
-        process->setCallback(bind(&Manager::processCallback, this, placeholders::_1));
+        process->setCallback(bind(&Manager::processCallback, this, placeholders::_1), bind(&Manager::processCallbackFailed, this, placeholders::_1));
         string processID = process->getProcessID();
         computer->startOneTask(process, [=]()
         {
@@ -182,6 +182,7 @@ void Manager::processCallback(shared_ptr<Process> process)
   }
   string ipAddr = process->getIpAddr();
   unique_lock<mutex> lck(computerMutex);
+  bool flag = false;
   for (auto computer : fullWorkingComputers)
   {
     if (computer->getIpAddr() == ipAddr)
@@ -189,9 +190,66 @@ void Manager::processCallback(shared_ptr<Process> process)
       computer->removeProcess(process);
       if (computer->getIdleNum() != 0)
         addAvailableComputer(computer);
+      flag = true;
       break;
     }
   }
+  if (!flag)
+  {
+    for (auto computer : idleComputers)
+    {
+      if (computer->getIpAddr() == ipAddr)
+      {
+        computer->removeProcess(process);
+        break;
+      }
+    }
+  }
+}
+
+void Manager::processCallbackFailed(shared_ptr<Process> process)
+{
+  shared_ptr<Task> task = process->getTask();
+  if (task)
+  {
+    unique_lock<mutex> lck(taskMutex);
+    task->getProcessingNumber()--;
+
+    taskCv.notify_one();
+    {
+      lock_guard<mutex> lckLog(logMutex);
+      if (logNameUsingCores.count(task->getLogName()) > 0 && logNameUsingCores[task->getLogName()] > 0)
+      {
+        logNameUsingCores[task->getLogName()]--;
+      }
+    }
+  }
+  string ipAddr = process->getIpAddr();
+  unique_lock<mutex> lck(computerMutex);
+  bool flag = false;
+  for (auto computer : fullWorkingComputers)
+  {
+    if (computer->getIpAddr() == ipAddr)
+    {
+      computer->removeProcess(process);
+      if (computer->getIdleNum() != 0)
+        addAvailableComputer(computer);
+      flag = true;
+      break;
+    }
+  }
+  if (!flag)
+  {
+    for (auto computer : idleComputers)
+    {
+      if (computer->getIpAddr() == ipAddr)
+      {
+        computer->removeProcess(process);
+        break;
+      }
+    }
+  }
+  process->getIpAddr() = "";
 }
 
 void Manager::addNewTask(shared_ptr<Task> task)
