@@ -511,6 +511,7 @@ void Manager::killTaskByID(string id)
       if (task->getTaskID() == id)
       {
         taskToBeKilled = task;
+        taskToBeKilled->getStatus() = false;
         processingTaskQueue.erase(task);
         break;
       }
@@ -854,6 +855,7 @@ void Manager::addTaskFromTelnet(string taskName, string owner, string type, stri
   task->getWorkDir() = dir1;
   task->getReletiveDir() = dir2;
   task->getLogName() = logName;
+  task->getStatus() = true;
   string script = dir1 + "script.txt";
   FILE* fp = fopen(script.c_str(), "r");
   int processNumber = 0;
@@ -1006,7 +1008,7 @@ void Manager::reassignProcess(string tid, string pid)
     }
   }
   shared_ptr<Process> tmpProcess;
-  if (tmpTask)
+  if (tmpTask && tmpTask->getStatus())
   {
     for (auto process : tmpTask->getProcesses())
     {

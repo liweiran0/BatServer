@@ -92,6 +92,11 @@ void Task::doCallback()
   }
 }
 
+bool& Task::getStatus()
+{
+  return status;
+}
+
 
 TaskInfo::TaskInfo(decltype(taskID) id, string name, string owner, string type):taskID(id),taskName(name),taskOwner(owner),taskType(type)
 {

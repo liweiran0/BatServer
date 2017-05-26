@@ -146,7 +146,7 @@ void ServerNet::run()
             {
               SocketInfo->cmd_str += SocketInfo->DataBuf.buf;
               string cmd = getCommandFromString(SocketInfo->cmd_str);
-              //cout << SocketInfo->DataBuf.buf << endl;// 如果成功接收数据，则打印收到的数据
+              cout << SocketInfo->DataBuf.buf << endl;// 如果成功接收数据，则打印收到的数据
               if (cmd != "" && callback)
                 callback(cmd, SocketInfo->Socket);
             }

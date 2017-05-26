@@ -24,6 +24,7 @@ private:
   string firstProcessIDInQueue = ""; // the first ID of process in queue
   vector<shared_ptr<Process>> processes; // all the processes
   function<void(void)> afterProcessing;
+  bool status = true;
 public:
   Task();
   ~Task();
@@ -42,6 +43,7 @@ public:
   vector<shared_ptr<Process>>& getProcesses();
   void setCallback(function<void(void)> cb);
   void doCallback();
+  bool &getStatus();
 };
 
 class TaskInfo

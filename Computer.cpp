@@ -127,7 +127,7 @@ void Computer::startOneTask(shared_ptr<Process> process, function<void()> cb)
   addProcess(process);
   process->getIpAddr() = ipAddr;
   process->getProcessorIndex() = processor;
-  cout << "start process " << process->getProcessID() << " on computer " << ipAddr << " processor " << processor <<endl;
+  //cout << "start process " << process->getProcessID() << " on computer " << ipAddr << " processor " << processor <<endl;
   workingThread[processor] = thread(&Computer::doingThread, this, process, cb);
   workingThread[processor].detach();
 }
@@ -156,6 +156,7 @@ void Computer::doingThread(shared_ptr<Process> process, function<void()> cb)
   FILE* fpFileList = fopen(fileName.c_str(), "w");
   if (!fpFileList)
   {
+    unique_lock<mutex> lck(processorMutex);
     string processor = process->getProcessorIndex();
     workingProcessor.remove(processor);
     idleProcessor.push_back(processor);
@@ -185,6 +186,18 @@ void Computer::doingThread(shared_ptr<Process> process, function<void()> cb)
   cmd += process->getTaskID() + "\":taskname=\"" + taskName + "\":processid=\"" + process->getProcessID() + "\":coreid=\"" + process->getProcessorIndex() + "\":bat=\"" + process->getRemoteBat() + "\":logdir=\"" + reletiveDir + process->getLocalDir() + "\"";
   //cmd="start":taskid="TaskID":taskname="TaskName":processid="ProcessID":coreid="ProcessorID":bat="LocalScriptName":logdir="RemoteLogDir"
   //cout << cmd << endl;
+
+  if (!task->getStatus())
+  {
+    unique_lock<mutex> lck(processorMutex);
+    string processor = process->getProcessorIndex();
+    workingProcessor.remove(processor);
+    idleProcessor.push_back(processor);
+    removeProcess(process);
+    process->getIpAddr() = "";
+    process->getProcessorIndex() = "";
+    cb();
+  }
   ClientNet client;
   client.Connect(ipAddr.c_str(), fixPort);
   client.SendMsg(cmd);
@@ -282,7 +295,7 @@ int Computer::finishProcess(string processID, string processorID)
     {
       if (p->getProcessorIndex() == processorID)
       {
-        cout << "process " << processID << " of task:" << p->getTaskID() << " finished." << endl;
+        //cout << "process " << processID << " of task:" << p->getTaskID() << " finished." << endl;
         process = p;
         break;
       }
@@ -365,7 +378,7 @@ int Computer::killedProcess(string processID, string processorID)
 {
   int ret = 0;
   unique_lock<mutex> lck(processorMutex);
-  cout << "process " + processID + " at core " + processorID + " is killed." << endl;
+  //cout << "process " + processID + " at core " + processorID + " is killed." << endl;
   if (find(workingProcessor.begin(), workingProcessor.end(), processorID) != workingProcessor.end())
   {
     workingProcessor.remove(processorID);
