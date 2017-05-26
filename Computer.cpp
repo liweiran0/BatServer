@@ -197,6 +197,7 @@ void Computer::doingThread(shared_ptr<Process> process, function<void()> cb)
     process->getIpAddr() = "";
     process->getProcessorIndex() = "";
     cb();
+    return;
   }
   ClientNet client;
   client.Connect(ipAddr.c_str(), fixPort);

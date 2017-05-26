@@ -334,10 +334,10 @@ void Manager::telnetCallback(string cmd, SOCKET sock)
         }
       }
       if (processingTaskQueue.size() > 0)
-        ret += "TaskID\tTotal\tDone\tDoing\tTaskType\tTaskOwner\r\n";
+        ret += "TaskID\t\tTotal\tDone\tDoing\tTaskType\tTaskOwner\r\n";
       for (auto task : processingTaskQueue)
       {
-        ret += task->getTaskID() + "\t" + to_string(task->getProcessNumbers()) + "\t"
+        ret += task->getTaskID() + "\t\t" + to_string(task->getProcessNumbers()) + "\t"
           + to_string(task->getFinishedNumber()) + "\t" + to_string(task->getProcessingNumber()) + "\t"
           + task->getTaskType() + "\t\t" + task->getTaskOwner() + "\r\n  TaskName:" + task->getTaskName() + "\r\n";
       }
