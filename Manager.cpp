@@ -543,7 +543,12 @@ void Manager::killTaskByID(string id)
         }
         for (auto computer : fullWorkingComputers)
         {
-          killedNumber += computer->killTask(taskToBeKilled);
+          int killed = computer->killTask(taskToBeKilled);
+          killedNumber += killed;
+          if (killed > 0)
+          {
+            addAvailableComputer(computer);
+          }
         }
       }
       {
