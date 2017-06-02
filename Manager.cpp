@@ -639,6 +639,8 @@ void Manager::removeComputer(string ip)
     if (computer)
     {
       processes = computer->getDoingProcesses();
+      for (auto process : processes)
+        computer->killProcess(process);
       computer->reset();
       unregisteredComputers.push_back(computer);
     }
@@ -710,6 +712,12 @@ void Manager::setComputerAttr(string ip, int cores)
           processQueue.splice(processQueue.begin(), processes);
           computerChangeFlag = true;
           queueCv.notify_one();
+        }
+        else
+        {
+          int removeNum = computer->getWorkingNum() - cores;
+          for (auto i = 0; i < removeNum; i++)
+            computer->removeIdleProcessor();
         }
       }
       computer->setProcessorNum(cores);

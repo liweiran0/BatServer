@@ -316,7 +316,7 @@ int Computer::finishProcess(string processID, string processorID)
       }
       else
       {
-        //cout << "processor " << processorID << " is lazily shutdown." << endl;
+        cout << "processor " << processorID << " is lazily shutdown." << endl;
         if (actualProcessNum - processorNum <= unUseProcessor.size())
         {
           //here when lazyset again
@@ -324,7 +324,8 @@ int Computer::finishProcess(string processID, string processorID)
         }
         else
         {
-          unUseProcessor.push_back(processorID);
+          if (find(unUseProcessor.begin(), unUseProcessor.end(), processorID) == unUseProcessor.end())
+            unUseProcessor.push_back(processorID);
         }
       }
     }
@@ -368,7 +369,8 @@ int Computer::failedProcess(string processID, string processorID)
         }
         else
         {
-          unUseProcessor.push_back(processorID);
+          if (find(unUseProcessor.begin(), unUseProcessor.end(), processorID) == unUseProcessor.end())
+            unUseProcessor.push_back(processorID);
         }
       }
     }
@@ -388,7 +390,8 @@ int Computer::killedProcess(string processID, string processorID)
     if (actualProcessNum - processorNum > unUseProcessor.size())
     {
       cout << "processor " << processorID << " of computer " << ipAddr << " is now unused." << endl;
-      unUseProcessor.push_back(processorID);
+      if (find(unUseProcessor.begin(), unUseProcessor.end(), processorID) == unUseProcessor.end())
+        unUseProcessor.push_back(processorID);
     }
     else
     {
@@ -397,6 +400,12 @@ int Computer::killedProcess(string processID, string processorID)
       if (idleProcessor.size() == 1)
         ret = 1;
     }
+  }
+  else
+  {
+    cout << "processor " << processorID << " of computer " << ipAddr << " is now unused." << endl;
+    if (find(unUseProcessor.begin(), unUseProcessor.end(), processorID) == unUseProcessor.end())
+      unUseProcessor.push_back(processorID);
   }
   return ret;
 }
@@ -408,7 +417,8 @@ void Computer::removeIdleProcessor()
   {
     auto processor = idleProcessor.front();
     idleProcessor.pop_front();
-    unUseProcessor.push_back(processor);
+    if (find(unUseProcessor.begin(), unUseProcessor.end(), processor) == unUseProcessor.end())
+      unUseProcessor.push_back(processor);
   }
 }
 
@@ -420,7 +430,8 @@ void Computer::removeWorkingProcessor(string processorId)
   if (iter != workingProcessor.end())
   {
     workingProcessor.remove(processorId);
-    unUseProcessor.push_back(processorId);
+    if (find(unUseProcessor.begin(), unUseProcessor.end(), processorId) == unUseProcessor.end())
+      unUseProcessor.push_back(processorId);
   }
 }
 
@@ -432,6 +443,7 @@ void Computer::lazyRemoveProcessor(int num)
   {
     workingProcessor.pop_front();
   }
+  cout << " after lazy remove left " << workingProcessor.size() << " cores working." << endl;
 }
 
 
