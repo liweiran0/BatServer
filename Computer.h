@@ -34,8 +34,8 @@ public:
   int getUnusedNum();
   void init();
   void reset();
-  void startOneTask(shared_ptr<Process> process, function<void()> cb);
-  void doingThread(shared_ptr<Process> process, function<void()> cb);
+  void startOneTask(shared_ptr<Process> process, function<void()> failed_cb);
+  void doingThread(shared_ptr<Process> process, function<void()> failed_cb);
   void addProcess(shared_ptr<Process> process);
   int removeProcess(shared_ptr<Process> process);
   shared_ptr<Process> suspendProcess();

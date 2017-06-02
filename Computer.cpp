@@ -116,7 +116,7 @@ void Computer::reset()
 }
 
 
-void Computer::startOneTask(shared_ptr<Process> process, function<void()> cb)
+void Computer::startOneTask(shared_ptr<Process> process, function<void()> failed_cb)
 {
   //copy
   //start
@@ -128,11 +128,11 @@ void Computer::startOneTask(shared_ptr<Process> process, function<void()> cb)
   process->getIpAddr() = ipAddr;
   process->getProcessorIndex() = processor;
   //cout << "start process " << process->getProcessID() << " on computer " << ipAddr << " processor " << processor <<endl;
-  workingThread[processor] = thread(&Computer::doingThread, this, process, cb);
+  workingThread[processor] = thread(&Computer::doingThread, this, process, failed_cb);
   workingThread[processor].detach();
 }
 
-void Computer::doingThread(shared_ptr<Process> process, function<void()> cb)
+void Computer::doingThread(shared_ptr<Process> process, function<void()> failed_cb)
 {
   //send file
   auto task = process->getTask();
@@ -163,7 +163,7 @@ void Computer::doingThread(shared_ptr<Process> process, function<void()> cb)
     removeProcess(process);
     process->getIpAddr() = "";
     process->getProcessorIndex() = "";
-    cb();
+    failed_cb();
     return;
   }
   else
@@ -189,14 +189,16 @@ void Computer::doingThread(shared_ptr<Process> process, function<void()> cb)
 
   if (!task->getStatus())
   {
-    unique_lock<mutex> lck(processorMutex);
-    string processor = process->getProcessorIndex();
-    workingProcessor.remove(processor);
-    idleProcessor.push_back(processor);
+    {
+      unique_lock<mutex> lck(processorMutex);
+      string processor = process->getProcessorIndex();
+      workingProcessor.remove(processor);
+      idleProcessor.push_back(processor);
+    }
     removeProcess(process);
     process->getIpAddr() = "";
     process->getProcessorIndex() = "";
-    cb();
+    failed_cb();
     return;
   }
   ClientNet client;
@@ -379,18 +381,19 @@ int Computer::killedProcess(string processID, string processorID)
 {
   int ret = 0;
   unique_lock<mutex> lck(processorMutex);
-  //cout << "process " + processID + " at core " + processorID + " is killed." << endl;
+  cout << "process " + processID + " at core " + processorID + "@" + ipAddr + " is killed." << endl;
   if (find(workingProcessor.begin(), workingProcessor.end(), processorID) != workingProcessor.end())
   {
     workingProcessor.remove(processorID);
     if (actualProcessNum - processorNum > unUseProcessor.size())
     {
+      cout << "processor " << processorID << " of computer " << ipAddr << " is now unused." << endl;
       unUseProcessor.push_back(processorID);
     }
     else
     {
       idleProcessor.push_back(processorID);
-      //cout << "processor " << processorID << "of computer "<< ipAddr<< " now idle." << endl;
+      cout << "processor " << processorID << " of computer "<< ipAddr<< " is now idle." << endl;
       if (idleProcessor.size() == 1)
         ret = 1;
     }

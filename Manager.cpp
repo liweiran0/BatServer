@@ -118,13 +118,21 @@ void Manager::working()
         }
         process->setCallback(bind(&Manager::processCallback, this, placeholders::_1), bind(&Manager::processCallbackFailed, this, placeholders::_1));
         string processID = process->getProcessID();
+        //cout << "try to start process " << processID << " of Task " << taskID << " on computer " << computer->getIpAddr() << endl;
         computer->startOneTask(process, [=]()
         {
           reassignProcess(taskID, processID);
+          int idleProcessorNum = computer->getIdleNum();
+          if (idleProcessorNum == 1)
+          {
+            unique_lock<mutex> lckComputer(computerMutex);
+            addAvailableComputer(computer);
+          }
         });
         int idleProcessorNum = computer->getIdleNum();
         if (idleProcessorNum == 0)
         {
+          unique_lock<mutex> lckComputer(computerMutex);
           idleComputers.pop_front();
           fullWorkingComputers.push_back(computer);
         }
@@ -144,7 +152,7 @@ void Manager::addAvailableComputer(shared_ptr<Computer> computer)
   idleComputers.push_back(computer);
   fullWorkingComputers.remove(computer);
   computerCv.notify_one();
-  //cout << "computer " << computer->getIpAddr() << " now available" << endl;
+  cout << "computer " << computer->getIpAddr() << " now available with " << computer->getIdleNum() << " idle cores." << endl;
 }
 
 void Manager::addNewComputer(shared_ptr<Computer> computer)
@@ -543,12 +551,7 @@ void Manager::killTaskByID(string id)
         }
         for (auto computer : fullWorkingComputers)
         {
-          int killed = computer->killTask(taskToBeKilled);
-          killedNumber += killed;
-          if (killed > 0)
-          {
-            addAvailableComputer(computer);
-          }
+          killedNumber += computer->killTask(taskToBeKilled);
         }
       }
       {
